@@ -1,0 +1,63 @@
+# ---------------------------------------------------------------
+# Data — never committed. MEVA is ~587 GB in total; the working
+# subset is reproducible via scripts/colab_meva_setup.py
+# ---------------------------------------------------------------
+data/
+*.avi
+*.mp4
+*.mkv
+*.part
+
+# Model weights / checkpoints / embeddings
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+embeddings/
+checkpoints/
+runs/
+
+# Vector + metadata stores (rebuildable from frames + encoder)
+*.sqlite
+*.sqlite3
+*.db
+chroma/
+.chroma/
+
+# Derived artefacts
+manifest.csv
+vocab.json
+
+# ---------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+venv/
+.venv/
+env/
+
+# ---------------------------------------------------------------
+# Node (used only for document generation tooling)
+# ---------------------------------------------------------------
+node_modules/
+package-lock.json
+
+# ---------------------------------------------------------------
+# Office / OS temp files
+# ---------------------------------------------------------------
+~$*
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------
+# Experiment tracking
+# ---------------------------------------------------------------
+wandb/
+mlruns/
+.env
