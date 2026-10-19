@@ -13,7 +13,8 @@ CELL_7 = r'''
 import os, re, glob, yaml, csv, collections, json
 
 ROOT  = '/content/drive/MyDrive/DL-Project/meva'
-ANNO  = f'{ROOT}/annotations/meva-data-repo'
+ANNO  = next((p for p in [f'{ROOT}/annotations/meva-data-repo', '/content/drive/MyDrive/meva/annotations/meva-data-repo'] if os.path.isdir(p)), None)
+assert ANNO, 'meva-data-repo not found on Drive - check where Cell 2 copied it'
 VIDEO = f'{ROOT}/videos'
 
 # ---------- 1. what is in the repo ----------
@@ -23,10 +24,7 @@ print(f'activity files : {len(act_files)}')
 print(f'geometry files : {len(geom_files)}')
 
 # annotation dirs (train/test split lives here)
-dirs = collections.Counter(
-    os.path.relpath(os.path.dirname(p), ANNO).split(os.sep)[2] if
-    len(os.path.relpath(os.path.dirname(p), ANNO).split(os.sep)) > 2 else '(top)'
-    for p in act_files)
+dirs = collections.Counter('/'.join(os.path.relpath(os.path.dirname(p), ANNO).split(os.sep)[:4]) for p in act_files)
 print('\nannotation groups:')
 for d, n in dirs.most_common(12):
     print(f'  {n:>6}  {d}')
@@ -47,7 +45,7 @@ for ap in act_files:
     stem = os.path.basename(ap).replace('.activities.yml', '')
     vpath = have.get(stem)
     try:
-        doc = yaml.safe_load(open(ap))
+        doc = yaml.load(open(ap), Loader=getattr(yaml, 'CSafeLoader', yaml.SafeLoader))
     except Exception:
         continue
     if not doc:
