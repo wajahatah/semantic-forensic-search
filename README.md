@@ -70,15 +70,34 @@ acquisition scripts below.
 ## Repository layout
 
 ```
-docs/planning/
-  project-selection.md        dataset evaluation, candidate comparison, novelty verification
-  spec-retrieval-system.md    system spec: alert schema, storage design, query flow
+src/sfs/                      the package (tested locally, run on Colab via the bundle)
+  data/kpf.py                 MEVA KPF annotation parsing (activities, per-frame boxes)
+  data/manifest.py            manifest v2: splits (official + unseen-camera), dedupe, leakage check
+  data/sampling.py            frames per activity instance (2 fps, cap 16)
+  data/regions.py             tight / context / full crop views
+  data/extract_crops.py       crop store job + integrity gate (Colab)
+  embed/encoder.py            SigLIP and SigLIP 2 wrappers, encoder_id
+  embed/run.py                resumable per-video embedding job
+  store/shards.py             embedding shard format
+  store/crops.py              packed JPEG crop store format
+  eval/queries.py             Q1 category + Q2 forensic query sets
+  eval/metrics.py             AP, P@K, R-precision, Recall@K, MRR
+  eval/retrieval.py           frame -> instance scoring (mean of top-m)
+  eval/baseline.py            frozen-encoder baseline evaluation (local)
+queries/phrasings.csv         reviewed natural-language query phrasings (3 per activity)
+tests/                        pytest suite (`pytest`; real-model tests: `pytest -m slow`)
+colab/
+  sfs_bundle.py               GENERATED one-cell copy of src/sfs for Colab
+  RUN_EMBEDDING.md            Colab runbook: manifest v2 + embedding job
+docs/EXPERIMENT_LOG.md        every experiment, result and decision, with its basis
+docs/results/                 result write-ups
+docs/planning/                specs (spec-crops-queries-baseline.md = current build)
+docs/learning/                concepts guide
 scripts/
+  build_colab_bundle.py       regenerates colab/sfs_bundle.py
   colab_meva_setup.py         corpus + annotation acquisition (Colab -> Drive)
-  colab_build_manifest.py     annotation inventory, video alignment, query-set manifest
-proposals/
-  Ahmed_Wajahat_DLProposal.*  submitted proposal
-  system_diagram.png          system architecture diagram
+  colab_build_manifest.py     v1 manifest (superseded by sfs.data.manifest)
+proposals/                    submitted proposal + system diagram
 ```
 
 ---
@@ -99,6 +118,25 @@ of a few site-hours is sufficient.
 
 ---
 
+## Local environment
+
+Python 3.12, CUDA-enabled PyTorch (developed on an RTX 4060 Laptop, 8 GB).
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
+pip install -r requirements.txt
+python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+Heavy jobs (embedding the corpus) run on Colab with data mounted from Google Drive. Only embedding
+shards and the manifest are brought to the local machine.
+
+---
+
 ## Status
 
-Research and design phase. Proposal submitted; implementation not yet begun.
+Embeddings done (SigLIP 2 + tight crops selected on validation, `docs/results/01`). Crop store,
+query set and baseline evaluation implemented (`spec-crops-queries-baseline.md`); awaiting the
+Colab crop run and review of `queries/phrasings.csv` before the baseline is run.

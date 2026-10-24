@@ -34,7 +34,8 @@ It prints `sfs bundle installed ... | source commit <sha>`. Regenerate it locall
 
 ```python
 !pip install -q -U "transformers>=4.49" sentencepiece
-import transformers, torch; print(transformers.__version__, torch.cuda.get_device_name(0))
+import transformers, torch
+print(transformers.__version__, torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU only')
 ```
 
 ### Cell 4 — manifest v2 (splits, dedupe, leakage check)
