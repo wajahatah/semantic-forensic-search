@@ -174,3 +174,19 @@ CLI `sfs.eval.baseline`. **Runs locally** on the downloaded embeddings — no Co
 2. **Q1 + Q2 query sets**, with phrasings written by Claude and reviewed by you.
 3. **D-012: A or B** for the rare activity types.
 4. **Baseline evaluation** as specified (systems, metrics, both protocols, run locally).
+
+---
+
+## 10. Amendment (2026-10-24) — crop format, after the integrity gate failed (D-014)
+
+Supersedes the "What gets stored" table in §3.
+
+| View | Stored as | Why |
+|---|---|---|
+| `tight` | **native resolution, lossless PNG** | Embedded and trained on: must be pixel-exact. The 336 px JPEG store scored mean cosine 0.964 (gate 0.98); diagnosis showed the resize was the main cause — the median tight crop is 224 px, so most were upscaled and then downscaled again by the encoder |
+| `context` | native resolution capped at 448 px (downscale only), JPEG q95 | Read only by the VLM teacher; small compression is irrelevant there and keeps the store small |
+
+- Augmentation for LoRA (random resized crop) is applied at training time on the native crops.
+- New regression test: a stored tight crop must be **pixel-identical** to the region the embedding job cropped.
+- Output goes to `crops_v2`; the store id changes, so v1 shards can never be mistaken for v2.
+- Size estimate rises from ~3.7 GB to ~10–15 GB on Drive.

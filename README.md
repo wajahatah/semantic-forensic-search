@@ -79,7 +79,7 @@ src/sfs/                      the package (tested locally, run on Colab via the 
   embed/encoder.py            SigLIP and SigLIP 2 wrappers, encoder_id
   embed/run.py                resumable per-video embedding job
   store/shards.py             embedding shard format
-  store/crops.py              packed JPEG crop store format
+  store/crops.py              packed crop store (tight = native PNG, context = JPEG)
   eval/queries.py             Q1 category + Q2 forensic query sets
   eval/metrics.py             AP, P@K, R-precision, Recall@K, MRR
   eval/retrieval.py           frame -> instance scoring (mean of top-m)

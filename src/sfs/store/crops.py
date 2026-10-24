@@ -1,4 +1,4 @@
-"""Crop store: one packed ``.npz`` per video holding JPEG-encoded crops (spec-crops-queries-baseline §3).
+"""Crop store: one packed ``.npz`` per video holding encoded crops — PNG or JPEG per view (spec-crops-queries-baseline §3, D-014).
 
 ~147k crops as individual files would be very slow on a Drive mount, so each video's crops are
 concatenated into one byte buffer with offsets. No pickle. Atomic writes, validated reads.
@@ -14,17 +14,17 @@ ROW_ARRAYS = ("instance_id", "frame_idx", "view")
 _DTYPES = {"instance_id": np.int32, "frame_idx": np.int32, "view": np.uint8}
 
 
-def write_crop_shard(path: str, jpegs: list[bytes], meta: dict, **rows) -> None:
-    n = len(jpegs)
+def write_crop_shard(path: str, blobs: list[bytes], meta: dict, **rows) -> None:
+    n = len(blobs)
     if set(rows) != set(ROW_ARRAYS):
         raise ValueError(f"rows must be exactly {ROW_ARRAYS}")
     if any(len(rows[k]) != n for k in ROW_ARRAYS):
-        raise ValueError("row arrays and jpegs differ in length")
+        raise ValueError("row arrays and blobs differ in length")
     if "store_id" not in meta:
         raise ValueError("meta must contain store_id")
     offsets = np.zeros(n + 1, np.int64)
-    offsets[1:] = np.cumsum([len(j) for j in jpegs])
-    data = np.frombuffer(b"".join(jpegs), np.uint8) if n else np.zeros(0, np.uint8)
+    offsets[1:] = np.cumsum([len(j) for j in blobs])
+    data = np.frombuffer(b"".join(blobs), np.uint8) if n else np.zeros(0, np.uint8)
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "wb") as f:
@@ -45,13 +45,13 @@ class CropShard:
     def __len__(self) -> int:
         return len(self.instance_id)
 
-    def jpeg(self, i: int) -> bytes:
+    def blob(self, i: int) -> bytes:
         return self.data[self.offsets[i]:self.offsets[i + 1]].tobytes()
 
     def image(self, i: int) -> np.ndarray:
         """Decoded RGB uint8 array."""
         import cv2
-        bgr = cv2.imdecode(np.frombuffer(self.jpeg(i), np.uint8), cv2.IMREAD_COLOR)
+        bgr = cv2.imdecode(np.frombuffer(self.blob(i), np.uint8), cv2.IMREAD_COLOR)
         if bgr is None:
             raise ValueError(f"cannot decode crop {i}")
         return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)

@@ -5,8 +5,10 @@ import cv2
 import numpy as np
 import pytest
 
-from sfs.data.extract_crops import build_index, encode_crop, extract_video, make_store_id, verify
-from sfs.embed.run import EmbedConfig, process_video
+from sfs.data.extract_crops import (VIEW_FORMATS, build_index, encode_crop, extract_video,
+                                    make_store_id, verify)
+from sfs.data.regions import crop
+from sfs.embed.run import EmbedConfig, iter_frames, process_video, regions_for
 from sfs.store.crops import CropShard, crop_shard_is_valid, write_crop_shard
 from sfs.store.shards import consolidate
 
@@ -31,14 +33,24 @@ def video(tmp_path):
 
 
 def test_shard_round_trip(tmp_path):
-    imgs = [np.full((20, 20, 3), v, np.uint8) for v in (10, 200)]
-    jpegs = [encode_crop(i, 32, 95) for i in imgs]
+    rng = np.random.default_rng(0)
+    img = rng.integers(0, 256, (30, 20, 3), dtype=np.uint8)
+    blobs = [encode_crop(img, "png"), encode_crop(img, "jpg", max_side=10)]
     p = str(tmp_path / "s.npz")
-    write_crop_shard(p, jpegs, {"store_id": "x"}, instance_id=[4, 5], frame_idx=[1, 2], view=[0, 1])
+    write_crop_shard(p, blobs, {"store_id": "x"}, instance_id=[4, 5], frame_idx=[1, 2], view=[0, 1])
     s = CropShard(p)
-    assert len(s) == 2 and s.jpeg(1) == jpegs[1]
-    assert s.image(0).shape == (32, 32, 3) and abs(int(s.image(1).mean()) - 200) <= 2
+    assert len(s) == 2 and s.blob(1) == blobs[1]
+    assert np.array_equal(s.image(0), img), "PNG must round-trip pixel-exact"
+    assert s.image(1).shape == (10, 7, 3)                # downscaled, aspect ratio kept
     assert crop_shard_is_valid(p, "x") and not crop_shard_is_valid(p, "y")
+
+
+def test_encode_never_upscales():
+    img = np.zeros((224, 224, 3), np.uint8)
+    out = cv2.imdecode(np.frombuffer(encode_crop(img, "jpg", max_side=448), np.uint8), cv2.IMREAD_COLOR)
+    assert out.shape == (224, 224, 3)
+    with pytest.raises(ValueError):
+        encode_crop(img, "gif")
 
 
 def test_shard_rejects_bad_input(tmp_path):
@@ -51,14 +63,15 @@ def test_shard_rejects_bad_input(tmp_path):
 
 def test_extracted_crops_are_centred_on_the_actor(video, tmp_path):
     out = str(tmp_path / "crops")
-    stats = extract_video(video, INSTANCES, TRACKS, EmbedConfig(), out, "sid", size=336, quality=95)
+    stats = extract_video(video, INSTANCES, TRACKS, EmbedConfig(), out, "sid")
     assert stats["crops"] == (3 + 1) * 2 and stats["frames_missing"] == 0  # 4 frames x tight+context
 
     s = CropShard(os.path.join(out, f"{STEM}.npz"))
     for i in range(len(s)):
         img = s.image(i)
-        assert img.shape == (336, 336, 3)
-        assert img[168, 168].mean() > 230, "crop centre should be the white actor"
+        assert img.shape == ((224, 224, 3) if s.view[i] == 0 else (448, 448, 3))  # native sizes
+        cy, cx = img.shape[0] // 2, img.shape[1] // 2
+        assert img[cy, cx].mean() > 230, "crop centre should be the white actor"
         assert img[5, 5].mean() < 130, "crop corner should be grey background"
     tight = [s.image(i) for i in range(len(s)) if s.view[i] == 0][0]
     ctx = [s.image(i) for i in range(len(s)) if s.view[i] == 1][0]
@@ -73,10 +86,26 @@ def test_resume_and_index(video, tmp_path):
     assert len(idx) == 8 and set(idx.view) == {"tight", "context"}
 
 
+def test_tight_crops_are_pixel_identical_to_what_was_embedded(video, tmp_path):
+    """Regression for D-014: the stored tight crop must equal the region the embedding job cropped."""
+    out = str(tmp_path / "crops")
+    extract_video(video, INSTANCES, TRACKS, EmbedConfig(), out, "sid")
+    s = CropShard(os.path.join(out, f"{STEM}.npz"))
+    tight = {int(s.frame_idx[i]): s.image(i) for i in range(len(s)) if s.view[i] == 0}
+
+    cap = cv2.VideoCapture(video)
+    for f, frame in iter_frames(cap, sorted(tight)):
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        region = regions_for((0,), f, TRACKS, W, H, EmbedConfig())[0][1]
+        assert np.array_equal(tight[f], crop(rgb, region)), f"frame {f}: stored crop differs"
+    cap.release()
+
+
 def test_store_id_changes_with_settings():
-    a = make_store_id(EmbedConfig(), ("tight",), 336, 95)
-    assert a != make_store_id(EmbedConfig(), ("tight",), 224, 95)
-    assert a != make_store_id(EmbedConfig(), ("tight",), 336, 80)
+    a = make_store_id(EmbedConfig(), VIEW_FORMATS)
+    jpeg_tight = {**VIEW_FORMATS, "tight": {"format": "jpg", "max_side": None, "quality": 95}}
+    assert a != make_store_id(EmbedConfig(), jpeg_tight)
+    assert a == make_store_id(EmbedConfig(), dict(VIEW_FORMATS))
 
 
 class ColourEncoder:

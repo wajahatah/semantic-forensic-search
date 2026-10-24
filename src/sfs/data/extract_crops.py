@@ -24,29 +24,49 @@ from sfs.data.regions import VIEWS, crop
 from sfs.embed.run import EmbedConfig, check_track_coverage, iter_frames, plan, regions_for
 from sfs.store.crops import CropShard, crop_shard_is_valid, write_crop_shard
 
-DEFAULT_VIEWS = ("tight", "context")
 INTEGRITY_MIN_COSINE = 0.98
 
+# Per-view storage format (D-014). `tight` is embedded and trained on, so it is stored
+# pixel-exact: native resolution, lossless PNG, the encoder's own resize is the only resize.
+# Storing it resized to 336 px JPEG gave mean cosine 0.964 vs the original embeddings, mostly
+# because typical tight crops are 224 px and were upscaled. `context` is read only by the VLM
+# teacher, so it is downscaled to <=448 px and stored as JPEG to keep the store small.
+VIEW_FORMATS = {
+    "tight": {"format": "png", "max_side": None},
+    "context": {"format": "jpg", "max_side": 448, "quality": 95},
+}
+DEFAULT_VIEWS = tuple(VIEW_FORMATS)
 
-def make_store_id(cfg: EmbedConfig, views, size: int, quality: int) -> str:
-    ident = {"embed_config": cfg.as_dict(), "views": list(views), "size": size, "quality": quality}
+
+def make_store_id(cfg: EmbedConfig, formats: dict) -> str:
+    ident = {"embed_config": cfg.as_dict(), "formats": formats}
     return hashlib.sha1(json.dumps(ident, sort_keys=True).encode()).hexdigest()[:12]
 
 
-def encode_crop(rgb: np.ndarray, size: int, quality: int) -> bytes:
+def encode_crop(rgb: np.ndarray, format: str = "png", max_side: int | None = None,
+                quality: int = 95) -> bytes:
+    """Encode an RGB crop. Downscales (never upscales) only if `max_side` is exceeded."""
     import cv2
-    h, w = rgb.shape[:2]
-    interp = cv2.INTER_AREA if max(h, w) > size else cv2.INTER_CUBIC
-    img = cv2.resize(rgb, (size, size), interpolation=interp)
-    ok, buf = cv2.imencode(".jpg", cv2.cvtColor(img, cv2.COLOR_RGB2BGR),
-                           [cv2.IMWRITE_JPEG_QUALITY, quality])
+    img = rgb
+    h, w = img.shape[:2]
+    if max_side and max(h, w) > max_side:
+        scale = max_side / max(h, w)
+        img = cv2.resize(img, (max(1, round(w * scale)), max(1, round(h * scale))),
+                         interpolation=cv2.INTER_AREA)
+    bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    if format == "png":
+        ok, buf = cv2.imencode(".png", bgr, [cv2.IMWRITE_PNG_COMPRESSION, 3])
+    elif format == "jpg":
+        ok, buf = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, quality])
+    else:
+        raise ValueError(f"unknown crop format {format!r}")
     if not ok:
-        raise ValueError("JPEG encoding failed")
+        raise ValueError(f"{format} encoding failed")
     return buf.tobytes()
 
 
 def extract_video(video_path: str, instances, tracks: Tracks, cfg: EmbedConfig, out_dir: str,
-                  store_id: str, views=DEFAULT_VIEWS, size: int = 336, quality: int = 95) -> dict:
+                  store_id: str, formats: dict = VIEW_FORMATS) -> dict:
     import cv2
 
     stem = clip_stem(video_path)
@@ -63,9 +83,9 @@ def extract_video(video_path: str, instances, tracks: Tracks, cfg: EmbedConfig, 
     if fps <= 0:
         raise IOError(f"invalid fps {fps} for {video_path}")
 
-    keep = {VIEWS.index(v) for v in views}
+    fmt_by_view = {VIEWS.index(v): f for v, f in formats.items()}
     by_frame = plan(instances, fps, cfg)
-    jpegs, rows, seen, missing = [], [], set(), 0
+    blobs, rows, seen, missing = [], [], set(), 0
     try:
         for idx, frame in iter_frames(cap, sorted(by_frame)):
             seen.add(idx)
@@ -75,19 +95,19 @@ def extract_video(video_path: str, instances, tracks: Tracks, cfg: EmbedConfig, 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             for inst_id, actors in by_frame[idx]:
                 for vi, region, _fallback, _side in regions_for(actors, idx, tracks, img_w, img_h, cfg):
-                    if vi in keep:
-                        jpegs.append(encode_crop(crop(rgb, region), size, quality))
+                    if vi in fmt_by_view:
+                        blobs.append(encode_crop(crop(rgb, region), **fmt_by_view[vi]))
                         rows.append((inst_id, idx, vi))
     finally:
         cap.release()
 
     missing += len(by_frame) - len(seen)  # targets never reached: stream ended early
     r = np.array(rows, np.int64).reshape(-1, 3)
-    meta = {"store_id": store_id, "clip_stem": stem, "fps": fps, "size": size, "quality": quality,
-            "views": list(views), "frames_planned": len(by_frame), "frames_missing": missing}
-    write_crop_shard(path, jpegs, meta, instance_id=r[:, 0], frame_idx=r[:, 1], view=r[:, 2])
-    return {"clip_stem": stem, "skipped": False, "crops": len(jpegs),
-            "mb": round(sum(map(len, jpegs)) / 1e6, 1), "frames_missing": missing}
+    meta = {"store_id": store_id, "clip_stem": stem, "fps": fps, "formats": formats,
+            "frames_planned": len(by_frame), "frames_missing": missing}
+    write_crop_shard(path, blobs, meta, instance_id=r[:, 0], frame_idx=r[:, 1], view=r[:, 2])
+    return {"clip_stem": stem, "skipped": False, "crops": len(blobs),
+            "mb": round(sum(map(len, blobs)) / 1e6, 1), "frames_missing": missing}
 
 
 def build_index(out_dir: str) -> "pd.DataFrame":
@@ -151,13 +171,12 @@ def main(argv=None) -> int:
     ap.add_argument("--manifest", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--views", default=",".join(DEFAULT_VIEWS))
-    ap.add_argument("--size", type=int, default=336)
-    ap.add_argument("--quality", type=int, default=95)
     ap.add_argument("--limit-videos", type=int, default=0)
     a = ap.parse_args(argv)
 
-    cfg, views = EmbedConfig(), tuple(a.views.split(","))
-    store_id = make_store_id(cfg, views, a.size, a.quality)
+    cfg = EmbedConfig()
+    formats = {v: VIEW_FORMATS[v] for v in a.views.split(",")}
+    store_id = make_store_id(cfg, formats)
     print("store id:", store_id)
     videos = list(read_manifest(a.manifest).groupby("video_path"))
     if a.limit_videos:
@@ -167,7 +186,7 @@ def main(argv=None) -> int:
         try:
             tracks = parse_geom(geom_path_for(g.anno_file.iloc[0]))
             stats = extract_video(video_path, g.to_dict("records"), tracks, cfg, a.out, store_id,
-                                  views, a.size, a.quality)
+                                  formats)
             print(f"[{i}/{len(videos)}] {stats}  ({time.time() - t0:.0f}s)", flush=True)
         except Exception as exc:
             failed.append(video_path)

@@ -99,7 +99,8 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
   | actual stored crop | 0.9643 | — | — |
 - **Findings:** (1) GPU fp16 vs CPU fp32 makes **no** difference (row 1 = 1.0000) — the initial suspicion was wrong. (2) The **resize to 336 is the main cause**: the median tight crop is 224 px, so most crops were *upscaled* then downscaled again by the encoder. (3) JPEG adds a smaller loss (~0.4 points, ~1.4 on large crops). (4) Stored files are exactly what the code intended (row 4 = row 3).
 - **Lesson:** the 336 px choice ("room for augmentation, more detail for the teacher") was wrong for crops mostly *smaller* than 336 — there was no extra detail to keep.
-- **Proposed fix (pending approval):** tight crops stored at native resolution as lossless PNG (pixel-exact); context crops at native size capped to 448 px, JPEG q95 (teacher only). New test: stored tight crop must be pixel-identical to the direct crop.
+- **Decision (user approved, 2026-10-24):** tight crops stored at native resolution as lossless PNG (pixel-exact); context crops at native size capped to 448 px, JPEG q95 (teacher only). New regression test: stored tight crop must be pixel-identical to the direct crop. Re-run into `crops_v2`.
+- **Basis:** removes the cause found by the diagnosis instead of tuning a threshold; the gate stays at 0.98.
 
 ---
 
@@ -107,7 +108,7 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
 
 | ID | Question | Status |
 |---|---|---|
-| D-014 | Crop store format fix: tight = native PNG, context = native ≤448 px JPEG | **Pending approval** |
+| — | none currently | — |
 
 ---
 

@@ -95,19 +95,19 @@ into the local `data/` folder.
 
 # Crop store (spec-crops-queries-baseline, Part 1)
 
-Saves the tight + context crops as JPEGs (one packed file per video) so LoRA training and the VLM
+Saves the tight crops pixel-exact (native size, PNG) and context crops (≤448 px, JPEG), one packed file per video, so LoRA training and the VLM
 teacher never re-read the video. Run **Cells 1–3 above first** (paste the current bundle in Cell 2).
 
 ### Cell C1 — extract crops (~1–2 h, resumable)
 
 ```python
-CROPS = f'{BASE}/crops_v1'
+CROPS = f'{BASE}/crops_v2'   # v2: tight = native PNG (D-014); v1 failed the integrity gate
 from sfs.data.extract_crops import main as crops
 crops(['--manifest', MANIFEST, '--out', CROPS])
 ```
 
 One line per video. Safe to interrupt and re-run — finished videos print `skipped`. Ends with
-`index: N crops in 252 shards | failed=0`. Expect ~147,000 crops and roughly 3–4 GB.
+`index: N crops in 252 shards | failed=0`. Expect ~147,000 crops and roughly 10–15 GB (PNG is larger than JPEG).
 
 ### Cell C2 — integrity gate (must pass)
 
@@ -116,6 +116,7 @@ crops(['verify', '--crops', CROPS, '--embeddings', f'{BASE}/embeddings_v2_siglip
 ```
 
 Re-embeds 2,000 stored crops and compares them with the original embeddings. Must print
-`INTEGRITY PASSED` (mean cosine ≥ 0.98). **Paste the output back** — if it fails, stop.
+`INTEGRITY PASSED` (mean cosine ≥ 0.98). With pixel-exact PNG crops expect ≈ 1.000.
+On CPU add `'--n', '500'` to keep it to a few minutes. **Paste the output back** — if it fails, stop.
 
 Nothing needs downloading from this step: the crops stay on Drive for the training steps.
