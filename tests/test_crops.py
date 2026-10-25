@@ -129,3 +129,48 @@ def test_integrity_gate_passes_when_crops_match_embeddings(video, tmp_path, monk
     monkeypatch.setattr("sfs.embed.encoder.Encoder", ColourEncoder)
     r = verify(crops, str(tmp_path / "all.npz"), n=50)
     assert r["compared"] == 4 and r["passed"] and r["mean_cosine"] > 0.99
+
+
+def test_build_index_never_loads_image_bytes(video, tmp_path, monkeypatch):
+    """Regression: indexing ~250 PNG shards must not load GBs of image data."""
+    out = str(tmp_path / "crops")
+    extract_video(video, INSTANCES, TRACKS, EmbedConfig(), out, "sid")
+
+    def boom(*a, **k):
+        raise AssertionError("build_index loaded a full CropShard")
+    monkeypatch.setattr("sfs.data.extract_crops.CropShard", boom)
+    assert len(build_index(out)) == 8
+
+
+def test_verify_holds_at_most_one_shard_in_memory(video, tmp_path, monkeypatch):
+    """Regression: verify cached every shard it opened and crashed Colab (RAM) on the PNG store."""
+    import gc
+    import shutil
+    import weakref
+    import sfs.data.extract_crops as ec
+
+    stem2 = STEM.replace("G328", "G999")
+    video2 = str(tmp_path / f"{stem2}.r13.avi")
+    shutil.copy(video, video2)
+    out_emb, crops = str(tmp_path / "emb"), str(tmp_path / "crops")
+    paths = []
+    for v, s in ((video, STEM), (video2, stem2)):
+        process_video(v, INSTANCES, TRACKS, [ColourEncoder()], EmbedConfig(), out_emb,
+                      {"siglip2": "e"}, batch_size=4)
+        extract_video(v, INSTANCES, TRACKS, EmbedConfig(), crops, "sid")
+        paths.append(os.path.join(out_emb, "siglip2", f"{s}.npz"))
+    consolidate(paths, str(tmp_path / "all.npz"))
+
+    alive, peak = weakref.WeakSet(), [0]
+
+    class Tracked(CropShard):
+        def __init__(self, path):
+            super().__init__(path)
+            gc.collect()
+            alive.add(self)
+            peak[0] = max(peak[0], len(alive))
+
+    monkeypatch.setattr(ec, "CropShard", Tracked)
+    monkeypatch.setattr("sfs.embed.encoder.Encoder", ColourEncoder)
+    r = verify(crops, str(tmp_path / "all.npz"), n=50)
+    assert r["passed"] and peak[0] == 1, f"{peak[0]} shards held in memory at once"

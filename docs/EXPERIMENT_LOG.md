@@ -102,6 +102,12 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
 - **Decision (user approved, 2026-10-24):** tight crops stored at native resolution as lossless PNG (pixel-exact); context crops at native size capped to 448 px, JPEG q95 (teacher only). New regression test: stored tight crop must be pixel-identical to the direct crop. Re-run into `crops_v2`.
 - **Basis:** removes the cause found by the diagnosis instead of tuning a threshold; the gate stays at 0.98.
 
+### D-015 · Integrity check crashed Colab RAM (2026-10-25)
+- **Evidence:** with the PNG crop store, C2 (`verify`) crashed the free-tier runtime (~12 GB RAM) on every attempt. The JPEG store had not crashed.
+- **Cause:** `verify` cached every crop shard it opened; the 500 sampled crops span up to ~250 shards, so the whole store (~10+ GB as PNG, ~4× the JPEG size) was held in memory. The cache was useless — the loop visits each shard once. Secondary: `build_index` loaded every shard's image bytes just to read its small index columns.
+- **Decision:** one shard in memory at a time in `verify`; `build_index` reads only the row arrays (`read_crop_rows`, lazy npz members).
+- **Basis:** fix the cause, not raise memory. Two regression tests: index building must never load image bytes; `verify` must hold at most one shard at a time.
+
 ---
 
 ## Open decisions

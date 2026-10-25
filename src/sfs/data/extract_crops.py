@@ -22,7 +22,7 @@ import numpy as np
 from sfs.data.kpf import Tracks, clip_stem, geom_path_for, parse_geom
 from sfs.data.regions import VIEWS, crop
 from sfs.embed.run import EmbedConfig, check_track_coverage, iter_frames, plan, regions_for
-from sfs.store.crops import CropShard, crop_shard_is_valid, write_crop_shard
+from sfs.store.crops import CropShard, crop_shard_is_valid, read_crop_rows, write_crop_shard
 
 INTEGRITY_MIN_COSINE = 0.98
 
@@ -114,10 +114,10 @@ def build_index(out_dir: str) -> "pd.DataFrame":
     import pandas as pd
     parts = []
     for p in sorted(glob.glob(os.path.join(out_dir, "*.npz"))):
-        s = CropShard(p)
-        parts.append(pd.DataFrame({"instance_id": s.instance_id, "frame_idx": s.frame_idx,
-                                   "view": [VIEWS[v] for v in s.view],
-                                   "file": os.path.basename(p), "row": np.arange(len(s))}))
+        r = read_crop_rows(p)
+        parts.append(pd.DataFrame({"instance_id": r["instance_id"], "frame_idx": r["frame_idx"],
+                                   "view": [VIEWS[v] for v in r["view"]],
+                                   "file": os.path.basename(p), "row": np.arange(len(r["view"]))}))
     return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
 
 
@@ -135,10 +135,13 @@ def verify(crops_dir: str, embeddings_path: str, encoder_name: str = "siglip2",
     lookup = {k: i for i, k in enumerate(key[emb["view"] == VIEWS.index("tight")])}
     tight_rows = np.flatnonzero(emb["view"] == VIEWS.index("tight"))
 
-    enc, shards, cos = Encoder(encoder_name), {}, []
+    enc, cos = Encoder(encoder_name), []
     for file, g in sample.groupby("file"):
-        shard = shards.setdefault(file, CropShard(os.path.join(crops_dir, file)))
+        # One shard in memory at a time. Caching them all held the whole store in RAM
+        # (~10+ GB as PNG) and crashed the Colab runtime.
+        shard = CropShard(os.path.join(crops_dir, file))
         imgs = [shard.image(int(r)) for r in g.row]
+        del shard
         new = enc.embed_images(imgs)
         for (_, r), v in zip(g.iterrows(), new):
             j = lookup.get((int(r.instance_id) << 32) | int(r.frame_idx))

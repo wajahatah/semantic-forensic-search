@@ -33,6 +33,17 @@ def write_crop_shard(path: str, blobs: list[bytes], meta: dict, **rows) -> None:
     os.replace(tmp, path)
 
 
+def read_crop_rows(path: str) -> dict:
+    """Row arrays + meta only, WITHOUT the image bytes (npz members load lazily).
+
+    Building an index over ~250 shards must not load several GB of image data.
+    """
+    with np.load(path, allow_pickle=False) as z:
+        out = {k: z[k] for k in ROW_ARRAYS}
+        out["meta"] = json.loads(str(z["meta"]))
+    return out
+
+
 class CropShard:
     def __init__(self, path: str):
         with np.load(path, allow_pickle=False) as z:
