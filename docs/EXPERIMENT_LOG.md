@@ -108,6 +108,33 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
 - **Decision:** one shard in memory at a time in `verify`; `build_index` reads only the row arrays (`read_crop_rows`, lazy npz members).
 - **Basis:** fix the cause, not raise memory. Two regression tests: index building must never load image bytes; `verify` must hold at most one shard at a time.
 
+### D-016 · Crop store v2 passes; heavy work moves off Colab (2026-10-27)
+- **Context:** on Colab the integrity check never completed — the runtime disconnected while reading the ~14 GB store from Drive (repeated Drive-mount drops, see D-015 era).
+- **Decision:** move all post-extraction work to the local machine. The crop store (`crops_v2`, 14 GB) was downloaded at the owner's office (300 Mbps) and copied to `data/crops_v2/`. Colab remains only for jobs that must read the raw video on Drive.
+- **Basis:** video decoding — the only step that needed Colab — is finished; every later step reads crops or embeddings, both now local. The local RTX 4060 runs the check in 86 s.
+- **Completeness check:** 252/252 shards valid, one store id (`84b0a9ac41c5`), 147,138 crops = index rows, 73,569 tight + 73,569 context (matches the embedding rows).
+- **Integrity gate (full 2,000-crop sample, local GPU):** mean cosine **1.000**, p01 **0.9998** → **PASSED**.
+
+  | Crop store | Mean cos | Gate |
+  |---|---|---|
+  | v1 — 336 px JPEG | 0.964 | failed |
+  | v2 — native PNG | 1.000 | passed |
+- **Outcome:** spec `spec-crops-queries-baseline` Part 1 complete. All later comparisons (baseline vs LoRA) can use the crop store with no storage effect.
+
+### D-017 · Query phrasings approved and frozen (2026-10-27)
+- **Context:** the owner pointed out the phrasings could not be judged from label names alone.
+- **Review method:** a local review page (`data/review/phrasing_review.html`, git-ignored) showed, per activity, the 3 phrasings beside 4 real annotated examples as time-ordered filmstrips (tight crops + one context crop) — **training split only**, so eval stayed unseen. Official definitions: DIVA Annotation Guidelines v1.0 (extracted to `data/meva/docs/`).
+- **Observation:** many scenes are crowded indoor gatherings; for some activities (e.g. `hand_interacts_with_person`) the decisive detail is small within a busy crop.
+- **Decision:** phrasings approved as written (owner: activity names and descriptions correct; the three per activity are paraphrases). **Frozen** before any baseline result was seen.
+- **Basis:** queries written and reviewed blind to retrieval results cannot be tuned to the model.
+
+### D-018 · Frozen baseline on the eval split (2026-10-27) → `docs/results/02-frozen-baseline.md`
+- **Experiment:** spec Part 3. SigLIP 2 frozen, tight vs full vs random; Q1 (66 category queries) and Q2 (380 / 222 forensic events × 3 phrasings); Protocols A and B. First eval-split numbers — reported, not used for any decision.
+- **Result (Protocol A, macro):** tight Q1 mAP **0.179** (full 0.096, random 0.047); Q2 R@10 **0.510** (full 0.299, random 0.266), MRR 0.446. Protocol B: mAP 0.174, R@10 0.496. Cost: 1 encoder call, 0 VLM calls, ~40–60 ms per query.
+- **Findings:** cropping holds on eval (~2×); A ≈ B as expected for a model never trained on these cameras; motion-defined activities (pick up, put down, transfer, stand up, sit down) at chance (lift 1–2); phone use and vehicle/door events found well.
+- **Caveat:** Q2 Recall@K is capped when a window has more than K relevant instances; Success@K proposed for the next spec, defined before further results.
+- **Outcome:** spec `spec-crops-queries-baseline` complete (Parts 1–3). This is the number every later system must beat.
+
 ---
 
 ## Open decisions
