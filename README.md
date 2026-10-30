@@ -84,7 +84,8 @@ src/sfs/                      the package (tested locally, run on Colab via the 
   eval/metrics.py             AP, P@K, R-precision, Recall@K, MRR, Success@K
   eval/retrieval.py           frame -> instance scoring (mean of top-m)
   eval/baseline.py            retrieval evaluation of any embeddings file (local)
-queries/phrasings.csv         reviewed natural-language query phrasings (3 per activity)
+queries/phrasings.csv         reviewed natural-language query phrasings (3 per activity) — EVAL ONLY
+queries/train_captions.csv    reviewed training captions (6 per activity), disjoint from the above
 tests/                        pytest suite (`pytest`; real-model tests: `pytest -m slow`)
 colab/
   sfs_bundle.py               GENERATED one-cell copy of src/sfs for Colab
