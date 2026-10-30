@@ -1,0 +1,28 @@
+# Semantic Forensic Search — local environment
+# Python 3.12 (matches Colab's runtime; avoids version drift between local tests and Colab runs)
+#
+# Install torch FIRST, separately, with CUDA (see README "Local environment"), then:
+#   pip install -r requirements.txt
+
+# --- models ---
+transformers>=4.49        # 4.49 is the first release with SigLIP 2
+sentencepiece             # SigLIP (v1) tokenizer
+protobuf
+accelerate
+
+# --- data / video ---
+numpy
+pandas
+pyarrow                   # parquet for instance tables
+pyyaml                    # MEVA KPF annotations
+opencv-python
+pillow
+tqdm
+
+# --- tests ---
+pytest
+
+# --- later phases (install now to avoid a second round) ---
+peft                      # LoRA
+chromadb                  # vector store
+gradio                    # demo UI
