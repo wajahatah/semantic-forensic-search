@@ -81,9 +81,9 @@ src/sfs/                      the package (tested locally, run on Colab via the 
   store/shards.py             embedding shard format
   store/crops.py              packed crop store (tight = native PNG, context = JPEG)
   eval/queries.py             Q1 category + Q2 forensic query sets
-  eval/metrics.py             AP, P@K, R-precision, Recall@K, MRR
+  eval/metrics.py             AP, P@K, R-precision, Recall@K, MRR, Success@K
   eval/retrieval.py           frame -> instance scoring (mean of top-m)
-  eval/baseline.py            frozen-encoder baseline evaluation (local)
+  eval/baseline.py            retrieval evaluation of any embeddings file (local)
 queries/phrasings.csv         reviewed natural-language query phrasings (3 per activity)
 tests/                        pytest suite (`pytest`; real-model tests: `pytest -m slow`)
 colab/

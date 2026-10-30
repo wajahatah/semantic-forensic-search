@@ -51,8 +51,9 @@ def check_phrasings(phrasings: dict[str, list[str]], activities: list[str]) -> N
 
 
 def build_q1(manifest: pd.DataFrame, split_col: str, activities: list[str],
-             phrasings: dict[str, list[str]]) -> list[Query]:
-    ev = manifest[manifest[split_col] == "eval"]
+             phrasings: dict[str, list[str]], subset: str = "eval") -> list[Query]:
+    """Category queries over one subset of a protocol: "eval" for reporting, "val" for selection."""
+    ev = manifest[manifest[split_col] == subset]
     corpus = frozenset(ev.instance_id.tolist())
     out = []
     for a in activities:
@@ -60,7 +61,8 @@ def build_q1(manifest: pd.DataFrame, split_col: str, activities: list[str],
         if not rel:
             continue
         for j, text in enumerate(phrasings[a]):
-            out.append(Query(f"q1|{split_col}|{a}|{j}", "q1", a, j, text, corpus, rel))
+            qid = f"q1|{split_col}|{a}|{j}" if subset == "eval" else f"q1|{split_col}:{subset}|{a}|{j}"
+            out.append(Query(qid, "q1", a, j, text, corpus, rel))
     return out
 
 
