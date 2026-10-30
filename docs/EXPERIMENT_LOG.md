@@ -135,6 +135,13 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
 - **Caveat:** Q2 Recall@K is capped when a window has more than K relevant instances; Success@K proposed for the next spec, defined before further results.
 - **Outcome:** spec `spec-crops-queries-baseline` complete (Parts 1–3). This is the number every later system must beat.
 
+### D-019 · Training caption bank approved (2026-10-30)
+- **Context:** LoRA spec D1 — a training caption bank separate from, and disjoint with, the frozen evaluation phrasings (no exact match; same-activity similarity < 0.80; max 0.79).
+- **Review:** first pass (2026-10-29) the owner questioned `hand_interacts_with_person` (looked like signalling) and `person_carries_heavy_object` (no heavy items visible) — crowded crops made it unclear which people were meant. A second review page (`data/review/caption_review_boxes.html`, git-ignored) drew the activity's actors and objects from MEVA's box annotations (2,090 crops, 0 placement mismatches) beside the official MEVA definition. Training split only.
+- **Findings from the boxes:** `hand_interacts_with_person` is annotated from 1 s before contact to 1 s after, so edge frames show the approach; the carried "heavy object" (tracked as its own actor) is mostly folding chairs.
+- **Decision:** owner approved the 192 captions as written; `queries/train_captions.csv` frozen (sha256 prefix `139d6fc19a02a9ad`).
+- **Follow-ups:** edge-frame label noise proposed as a D4 addition; owner's "general phone-use caption" idea recorded in the spec (§10) for later, not adopted now.
+
 ---
 
 ## Open decisions

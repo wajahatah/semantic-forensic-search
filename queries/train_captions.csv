@@ -1,0 +1,197 @@
+# TRAINING caption bank for LoRA fine-tuning (spec-lora-finetune D1).
+# Must stay DISJOINT from queries/phrasings.csv (the evaluation queries) - enforced by a test.
+# 6 captions for each of the 32 activity types with training data (22 queried + 10 rare).
+# Status: APPROVED by owner 2026-10-30 (reviewed against boxed training examples) - frozen for LoRA training.
+activity,caption
+hand_interacts_with_person,people greeting each other with a handshake
+hand_interacts_with_person,hands meeting as two people greet
+hand_interacts_with_person,two people bumping fists
+hand_interacts_with_person,a quick hand slap between two people
+hand_interacts_with_person,someone reaching out and clasping another person's hand
+hand_interacts_with_person,a brief hand contact between two people meeting
+person_carries_heavy_object,someone lugging a big box across the room
+person_carries_heavy_object,a person walking while holding a large heavy item
+person_carries_heavy_object,a person carrying a bulky load
+person_carries_heavy_object,person transporting a heavy crate
+person_carries_heavy_object,someone moving a big object by hand
+person_carries_heavy_object,a person bent under the weight of what they carry
+person_closes_facility_door,a person shutting the door of a building
+person_closes_facility_door,someone pulling a building door closed behind them
+person_closes_facility_door,a person closing an entrance door
+person_closes_facility_door,the door of a facility being closed by someone
+person_closes_facility_door,someone pushing a doorway shut
+person_closes_facility_door,person closing a door after walking through
+person_closes_trunk,a person closing the trunk of a car
+person_closes_trunk,someone shutting a car's boot
+person_closes_trunk,the rear hatch of a vehicle being closed
+person_closes_trunk,a person slamming the trunk lid down
+person_closes_trunk,someone pushing a car trunk closed
+person_closes_trunk,person closing the back of a car after loading
+person_closes_vehicle_door,someone swinging a car door closed
+person_closes_vehicle_door,a person shutting the driver's door
+person_closes_vehicle_door,a vehicle door being closed by a person standing next to it
+person_closes_vehicle_door,person closing the passenger door of a car
+person_closes_vehicle_door,someone closing the door after getting out of a car
+person_closes_vehicle_door,a car door slammed shut by someone
+person_embraces_person,two people hugging
+person_embraces_person,a person giving someone a hug
+person_embraces_person,two people embracing each other
+person_embraces_person,friends wrapping their arms around each other
+person_embraces_person,someone hugging another person tightly
+person_embraces_person,a warm embrace between two people
+person_enters_scene_through_structure,someone stepping through a door into the room
+person_enters_scene_through_structure,a person arriving through an entryway
+person_enters_scene_through_structure,person appearing from a doorway and walking in
+person_enters_scene_through_structure,someone walking into the hall through a door
+person_enters_scene_through_structure,a person arriving from behind a door
+person_enters_scene_through_structure,a person passing through a gate into view
+person_enters_vehicle,someone getting in on the driver's side
+person_enters_vehicle,someone sliding into the front seat
+person_enters_vehicle,person entering a vehicle through its open door
+person_enters_vehicle,a passenger getting into the back seat
+person_enters_vehicle,someone ducking into a parked vehicle
+person_enters_vehicle,a person boarding a car
+person_exits_scene_through_structure,someone stepping out through a door
+person_exits_scene_through_structure,a person leaving the room through an exit door
+person_exits_scene_through_structure,person disappearing through a doorway
+person_exits_scene_through_structure,someone walking out of the hall
+person_exits_scene_through_structure,a person departing through a gate
+person_exits_scene_through_structure,someone heading out the door
+person_exits_vehicle,the driver getting out of the car
+person_exits_vehicle,a person emerging from a vehicle
+person_exits_vehicle,someone leaving a car through its door
+person_exits_vehicle,person stepping out from the passenger side
+person_exits_vehicle,someone exiting a parked vehicle
+person_exits_vehicle,someone climbing from the back seat of a vehicle
+person_opens_facility_door,someone opening a door into the building
+person_opens_facility_door,a person pulling a door handle
+person_opens_facility_door,person swinging open a glass entrance door
+person_opens_facility_door,someone holding a building door open
+person_opens_facility_door,a person unlatching a door and opening it
+person_opens_facility_door,someone opening a door to leave the building
+person_opens_trunk,a person opening the trunk of a car
+person_opens_trunk,someone lifting a car's boot lid
+person_opens_trunk,the rear hatch of a vehicle being opened
+person_opens_trunk,person raising the trunk to load something
+person_opens_trunk,someone popping open a car trunk
+person_opens_trunk,a person opening the back of a car
+person_opens_vehicle_door,someone opening the driver's door
+person_opens_vehicle_door,a person pulling a car door handle
+person_opens_vehicle_door,person swinging a vehicle door open
+person_opens_vehicle_door,someone opening the passenger door of a car
+person_opens_vehicle_door,a person reaching for a car door and opening it
+person_opens_vehicle_door,someone opening a car door to get out
+person_picks_up_object,someone picking a bag up from the floor
+person_picks_up_object,a person reaching down and taking an object
+person_picks_up_object,person grabbing a box off a table
+person_picks_up_object,a person scooping up a dropped item
+person_picks_up_object,a person lifting a package
+person_picks_up_object,someone stooping to pick something up
+person_puts_down_object,someone placing a box on the floor
+person_puts_down_object,a person dropping off a bag on a table
+person_puts_down_object,someone resting a box on a bench
+person_puts_down_object,someone leaving an item on the ground
+person_puts_down_object,a person lowering a package onto a surface
+person_puts_down_object,someone setting something down
+person_purchases,a person buying something at a counter
+person_purchases,someone paying for an item
+person_purchases,a customer handing over money
+person_purchases,person making a purchase
+person_purchases,someone paying a cashier
+person_purchases,a person buying food at a stand
+person_reads_document,a person reading a document
+person_reads_document,someone looking at a sheet of paper
+person_reads_document,person reading papers in their hands
+person_reads_document,someone studying a printed page
+person_reads_document,a person reading a booklet
+person_reads_document,someone holding and reading a paper
+person_sits_down,someone settling down onto a chair
+person_sits_down,a person taking a seat
+person_sits_down,person sitting down among rows of chairs
+person_sits_down,someone settling into a seat
+person_sits_down,a person going from standing to sitting
+person_sits_down,someone sitting down at a table
+person_stands_up,a person rising out of their seat
+person_stands_up,a person getting to their feet
+person_stands_up,person standing up after sitting
+person_stands_up,someone leaving their seat and standing
+person_stands_up,a person going from sitting to standing
+person_stands_up,someone pushing up out of a seat
+person_talks_on_phone,someone on a phone call
+person_talks_on_phone,a person speaking into a cell phone held at the ear
+person_talks_on_phone,person chatting on a mobile phone
+person_talks_on_phone,someone answering a phone call
+person_talks_on_phone,a person with a phone pressed to the side of the head
+person_talks_on_phone,someone having a phone conversation
+person_talks_to_person,two people in conversation
+person_talks_to_person,a person speaking with someone face to face
+person_talks_to_person,people chatting in a group
+person_talks_to_person,someone talking with another person
+person_talks_to_person,two people discussing something
+person_talks_to_person,a small group having a conversation
+person_texts_on_phone,someone typing a message on a phone
+person_texts_on_phone,a person looking at a smartphone screen
+person_texts_on_phone,person scrolling on a mobile phone
+person_texts_on_phone,someone sending a text message
+person_texts_on_phone,a person holding a phone in front of them and tapping it
+person_texts_on_phone,someone reading their phone
+person_transfers_object,someone giving an item to another person
+person_transfers_object,a person receiving an object from someone
+person_transfers_object,person handing over a package
+person_transfers_object,one person passing something to another
+person_transfers_object,someone handing a box to a person next to them
+person_transfers_object,two people swapping an object
+person_unloads_vehicle,a person unloading items from a car
+person_unloads_vehicle,someone taking bags out of a vehicle
+person_unloads_vehicle,person removing boxes from a car trunk
+person_unloads_vehicle,someone emptying a vehicle
+person_unloads_vehicle,a person pulling luggage out of a car
+person_unloads_vehicle,someone unloading a van
+vehicle_drops_off_person,a car dropping someone off
+vehicle_drops_off_person,a vehicle stopping to let a passenger out
+vehicle_drops_off_person,someone being dropped off by a car
+vehicle_drops_off_person,a car pulling over for a passenger to get out
+vehicle_drops_off_person,a vehicle letting a person off at the curb
+vehicle_drops_off_person,a car stopping briefly to drop off a rider
+vehicle_makes_u_turn,a car making a U-turn
+vehicle_makes_u_turn,a vehicle turning around in the road
+vehicle_makes_u_turn,a car reversing direction with a U-turn
+vehicle_makes_u_turn,a vehicle doing a U-turn in a parking lot
+vehicle_makes_u_turn,a car swinging around to go back the way it came
+vehicle_makes_u_turn,a vehicle making a full turn around
+vehicle_picks_up_person,a car picking someone up
+vehicle_picks_up_person,a vehicle stopping for a person to get in
+vehicle_picks_up_person,someone being picked up by a car
+vehicle_picks_up_person,a car pulling up to collect a passenger
+vehicle_picks_up_person,a vehicle waiting while a person climbs in
+vehicle_picks_up_person,a car stopping to pick up a rider
+vehicle_reverses,a vehicle moving in reverse
+vehicle_reverses,a car backing out of a space
+vehicle_reverses,a car rolling backwards
+vehicle_reverses,a vehicle reversing slowly
+vehicle_reverses,a car pulling back out of a parking bay
+vehicle_reverses,a truck backing up
+vehicle_starts,a car starting to drive
+vehicle_starts,a stopped vehicle getting moving again
+vehicle_starts,a car leaving its parking spot
+vehicle_starts,a vehicle setting off
+vehicle_starts,a car accelerating from a standstill
+vehicle_starts,a parked vehicle driving away
+vehicle_stops,a car stopping
+vehicle_stops,a vehicle slowing down and halting
+vehicle_stops,a vehicle braking hard and halting
+vehicle_stops,a moving car pulling up
+vehicle_stops,a vehicle stopping in the lot
+vehicle_stops,a car halting in the road
+vehicle_turns_left,a vehicle turning to the left
+vehicle_turns_left,a vehicle hooking left at a junction
+vehicle_turns_left,a car going left at an intersection
+vehicle_turns_left,a vehicle swinging left
+vehicle_turns_left,a car pulling left into another lane
+vehicle_turns_left,a vehicle heading off to the left
+vehicle_turns_right,a vehicle turning to the right
+vehicle_turns_right,a vehicle hooking right at a junction
+vehicle_turns_right,a car going right at an intersection
+vehicle_turns_right,a vehicle swinging right
+vehicle_turns_right,a car pulling right into another lane
+vehicle_turns_right,a vehicle heading off to the right
