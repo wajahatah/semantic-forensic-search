@@ -44,3 +44,12 @@ def r_precision(rel: np.ndarray) -> float:
 def reciprocal_rank(rel: np.ndarray) -> float:
     hits = np.flatnonzero(np.asarray(rel, bool))
     return 0.0 if len(hits) == 0 else float(1.0 / (hits[0] + 1))
+
+
+def success_at_k(rel: np.ndarray, k: int) -> float:
+    """1 if at least one relevant item is in the top k, else 0 (spec-lora-finetune D11).
+
+    Unlike Recall@K it is not capped when a query has more than k relevant items.
+    """
+    rel = np.asarray(rel, bool)
+    return float("nan") if rel.sum() == 0 else float(rel[:k].any())

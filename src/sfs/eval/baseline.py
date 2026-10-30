@@ -16,19 +16,20 @@ import numpy as np
 import pandas as pd
 
 from sfs.eval.metrics import (average_precision, precision_at_k, r_precision, rank,
-                              recall_at_k, reciprocal_rank)
+                              recall_at_k, reciprocal_rank, success_at_k)
 from sfs.eval.queries import (build_q1, build_q2, check_phrasings, eligible_activities,
                               load_phrasings)
 from sfs.eval.retrieval import InstanceIndex
 
 PROTOCOLS = {"A": "split", "B": "split_b"}
-METRIC_COLS = ["ap", "p10", "rprec", "r1", "r5", "r10", "rr"]
+METRIC_COLS = ["ap", "p10", "rprec", "r1", "r5", "r10", "rr", "s1", "s5", "s10"]
 
 
 def score_query(rel: np.ndarray) -> dict:
     return {"ap": average_precision(rel), "p10": precision_at_k(rel, 10), "rprec": r_precision(rel),
             "r1": recall_at_k(rel, 1), "r5": recall_at_k(rel, 5), "r10": recall_at_k(rel, 10),
-            "rr": reciprocal_rank(rel)}
+            "rr": reciprocal_rank(rel), "s1": success_at_k(rel, 1), "s5": success_at_k(rel, 5),
+            "s10": success_at_k(rel, 10)}
 
 
 def evaluate(queries, instance_ids: np.ndarray, scores: np.ndarray, text_col: dict) -> pd.DataFrame:
@@ -92,6 +93,8 @@ def main(argv=None) -> int:
     ap.add_argument("--views", default="tight,full")
     ap.add_argument("--m", type=int, default=3)
     ap.add_argument("--random-seeds", type=int, default=20)
+    ap.add_argument("--protocols", default="A,B",
+                    help="an adapted model is evaluated only on its own protocol (spec-lora-finetune D8)")
     ap.add_argument("--out", required=True, help="output prefix; writes <out>.json and <out>_queries.csv")
     a = ap.parse_args(argv)
 
@@ -111,7 +114,8 @@ def main(argv=None) -> int:
     result = {"encoder": a.encoder, "encoder_id": shard["meta"]["encoder_id"], "m": a.m,
               "activities": acts, "n_phrasings": len(texts), "protocols": {}}
     all_rows = []
-    for proto, col in PROTOCOLS.items():
+    for proto in a.protocols.split(","):
+        col = PROTOCOLS[proto]
         corpus = set(m.loc[m[col] == "eval", "instance_id"].astype(int))
         queries = build_q1(m, col, acts, phr) + build_q2(m, col, acts, phr)
         result["protocols"][proto] = {"corpus_instances": len(corpus), "systems": {}}
@@ -141,7 +145,7 @@ def main(argv=None) -> int:
 
     for proto, r in result["protocols"].items():
         print(f"\n=== Protocol {proto}  ({r['corpus_instances']} eval instances) ===")
-        for kind, cols in (("q1", ["ap", "p10", "rprec"]), ("q2", ["r1", "r5", "r10", "rr"])):
+        for kind, cols in (("q1", ["ap", "p10", "rprec"]), ("q2", ["r1", "r10", "rr", "s1", "s5", "s10"])):
             table = {s: {c: v[kind]["macro"][c] for c in cols} for s, v in r["systems"].items()}
             print(f"[{kind} macro]\n" + pd.DataFrame(table).T.round(3).to_string())
         print("latency:", r["latency"])
