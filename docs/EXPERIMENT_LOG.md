@@ -148,6 +148,15 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
 - **Added by owner:** D13 crash-safe per-epoch checkpoints with exact, config-checked resume.
 - **Basis:** owner review rounds 1–2 (2026-10-29/30).
 
+### D-021 · LoRA fine-tuning results (2026-10-30) → `docs/results/03-lora.md`
+- **Experiment:** spec `spec-lora-finetune` as approved (D-020). Four runs (A/B × uniform/middle-weighted), all stopped early (best epochs 28 / 16 / 10 / 10; ~1.5 h total on the RTX 4060, peak 5.0 GB).
+- **Selection (validation only, recorded in `runs/lora/selection.json` before eval was read):** A → **A-middle** (val mAP 0.437 vs 0.418); B → **B-uniform** (0.3776 vs 0.3756, near-tie). Frozen val mAP: A 0.272, B 0.222.
+- **Integrity:** val mAP recomputed from the re-embedded stores matches the trainer's record within 0.0004 for all runs; adapter-off re-embedding reproduces the baseline (cos min 0.99996).
+- **Result (eval, macro, own protocol only):** Q1 mAP A 0.179 → **0.313** (+0.134, 95 % CI [+0.085, +0.194]); B 0.174 → **0.280** (+0.107 [+0.062, +0.158]). Q2 S@1 A 0.273 → 0.389, S@10 0.819 → 0.902. Cost unchanged: 1 encoder call, 0 VLM calls. A improved all 22 activities; B 20 of 22.
+- **Hypotheses:** H1 confirmed. H2 rejected as stated — motion-defined activities (baseline lift ≤ 2) gained almost as much AP as the rest but remain the weakest (pick up / put down lift ≈ 2). H3 weak support — A–B gap 0.033 (frozen 0.005) but CIs overlap and the protocols differ in corpus and training cameras; ~80 % of the gain transfers to unseen cameras. H4 rejected — the A validation win comes almost entirely from one activity (`vehicle_turns_left`), `hand_interacts_with_person` moved the other way, and the variants tie on eval.
+- **Caveats:** one seed per run; small validation (739 / 586 instances) makes epoch and variant choice noisy; model revision still "unpinned".
+- **Outcome:** spec `spec-lora-finetune` complete. The adapted encoder is the new first-stage retriever. Remaining errors concentrate in motion-defined activities → motivates the VLM teacher / temporal re-ranker spec (next).
+
 ---
 
 ## Open decisions

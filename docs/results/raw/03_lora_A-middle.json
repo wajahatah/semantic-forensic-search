@@ -1,0 +1,160 @@
+{
+ "encoder": "siglip2",
+ "encoder_id": "30f7b115a0a8",
+ "m": 3,
+ "activities": [
+  "hand_interacts_with_person",
+  "person_carries_heavy_object",
+  "person_closes_vehicle_door",
+  "person_enters_scene_through_structure",
+  "person_enters_vehicle",
+  "person_exits_scene_through_structure",
+  "person_exits_vehicle",
+  "person_opens_facility_door",
+  "person_opens_vehicle_door",
+  "person_picks_up_object",
+  "person_puts_down_object",
+  "person_sits_down",
+  "person_stands_up",
+  "person_talks_on_phone",
+  "person_talks_to_person",
+  "person_texts_on_phone",
+  "person_transfers_object",
+  "vehicle_reverses",
+  "vehicle_starts",
+  "vehicle_stops",
+  "vehicle_turns_left",
+  "vehicle_turns_right"
+ ],
+ "n_phrasings": 66,
+ "protocols": {
+  "A": {
+   "corpus_instances": 3726,
+   "systems": {
+    "siglip2-tight": {
+     "q1": {
+      "queries": 66,
+      "activities": 22,
+      "macro": {
+       "ap": 0.3131,
+       "p10": 0.4076,
+       "rprec": 0.315,
+       "r1": 0.0057,
+       "r5": 0.0215,
+       "r10": 0.0402,
+       "rr": 0.6237,
+       "s1": 0.4848,
+       "s5": 0.8182,
+       "s10": 0.9394
+      },
+      "query_mean": {
+       "ap": 0.3131,
+       "p10": 0.4076,
+       "rprec": 0.315,
+       "r1": 0.0057,
+       "r5": 0.0215,
+       "r10": 0.0402,
+       "rr": 0.6237,
+       "s1": 0.4848,
+       "s5": 0.8182,
+       "s10": 0.9394
+      },
+      "n_rel_median": 77.0,
+      "n_corpus_median": 3726.0
+     },
+     "q2": {
+      "queries": 1140,
+      "activities": 22,
+      "macro": {
+       "ap": 0.4516,
+       "p10": 0.2416,
+       "rprec": 0.3515,
+       "r1": 0.1447,
+       "r5": 0.4481,
+       "r10": 0.5975,
+       "rr": 0.558,
+       "s1": 0.3886,
+       "s5": 0.7969,
+       "s10": 0.9022
+      },
+      "query_mean": {
+       "ap": 0.5178,
+       "p10": 0.2776,
+       "rprec": 0.4168,
+       "r1": 0.162,
+       "r5": 0.4983,
+       "r10": 0.6498,
+       "rr": 0.6128,
+       "s1": 0.4491,
+       "s5": 0.843,
+       "s10": 0.9289
+      },
+      "n_rel_median": 3.0,
+      "n_corpus_median": 56.0
+     }
+    },
+    "random": {
+     "q1": {
+      "macro": {
+       "ap": 0.0466,
+       "p10": 0.0439,
+       "rprec": 0.0448,
+       "r1": 0.0003,
+       "r5": 0.0012,
+       "r10": 0.0025,
+       "rr": 0.1304,
+       "s1": 0.0447,
+       "s5": 0.1856,
+       "s10": 0.3129
+      },
+      "query_mean": {
+       "ap": 0.0466,
+       "p10": 0.0439,
+       "rprec": 0.0448,
+       "r1": 0.0003,
+       "r5": 0.0012,
+       "r10": 0.0025,
+       "rr": 0.1304,
+       "s1": 0.0447,
+       "s5": 0.1856,
+       "s10": 0.3129
+      }
+     },
+     "q2": {
+      "macro": {
+       "ap": 0.1816,
+       "p10": 0.1038,
+       "rprec": 0.1139,
+       "r1": 0.0329,
+       "r5": 0.1483,
+       "r10": 0.2665,
+       "rr": 0.2515,
+       "s1": 0.1159,
+       "s5": 0.3854,
+       "s10": 0.5667
+      },
+      "query_mean": {
+       "ap": 0.2145,
+       "p10": 0.1249,
+       "rprec": 0.1409,
+       "r1": 0.0402,
+       "r5": 0.1797,
+       "r10": 0.309,
+       "rr": 0.2873,
+       "s1": 0.1426,
+       "s5": 0.4407,
+       "s10": 0.6213
+      }
+     }
+    }
+   },
+   "latency": {
+    "text_encode_ms": 7.25,
+    "score_and_rank_ms": 29.51,
+    "corpus_instances": 3726,
+    "model_calls_per_query": 1,
+    "vlm_calls_per_query": 0
+   }
+  }
+ }
+}
