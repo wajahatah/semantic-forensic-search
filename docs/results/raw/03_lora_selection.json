@@ -1,0 +1,16 @@
+{
+ "A": {
+  "selected": "A-middle",
+  "val_map": {
+   "A-uniform": 0.41790741218137456,
+   "A-middle": 0.4370606248659424
+  }
+ },
+ "B": {
+  "selected": "B-uniform",
+  "val_map": {
+   "B-uniform": 0.3775518429216506,
+   "B-middle": 0.3756134059377103
+  }
+ }
+}

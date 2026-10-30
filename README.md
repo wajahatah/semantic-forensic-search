@@ -98,12 +98,14 @@ colab/
   RUN_EMBEDDING.md            Colab runbook: manifest v2 + embedding job
 docs/EXPERIMENT_LOG.md        every experiment, result and decision, with its basis
 docs/results/                 result write-ups
-docs/planning/                specs (spec-crops-queries-baseline.md = current build)
+docs/planning/                specs (spec-lora-finetune.md = latest, complete)
 docs/learning/                concepts guide
 scripts/
   build_colab_bundle.py       regenerates colab/sfs_bundle.py
   colab_meva_setup.py         corpus + annotation acquisition (Colab -> Drive)
   colab_build_manifest.py     v1 manifest (superseded by sfs.data.manifest)
+  lora_val_check.py           re-embedded stores reproduce the recorded validation mAP
+  lora_report.py              Result 03 tables (baseline vs LoRA, bootstrap CIs, H2/H4)
 proposals/                    submitted proposal + system diagram
 ```
 
@@ -156,6 +158,10 @@ python -m sfs.train.run --runs A-uniform,A-middle,B-uniform,B-middle --out runs/
 # 3. re-embed with the selected adapter, then evaluate on that protocol only
 python -m sfs.embed.reembed --packed data/packed_tight --baseline manifest_v2_drive/embeddings_v2_siglip2.npz     --adapter runs/lora/A-middle/best/adapter.pt --out data/embeddings_lora/A-middle
 python -m sfs.eval.baseline --manifest manifest_v2_drive/manifest_v2.csv     --embeddings data/embeddings_lora/A-middle/embeddings.npz --phrasings queries/phrasings.csv     --views tight --protocols A --out runs/lora/eval/A-middle
+
+# 4. result tables (docs/results/03-lora.md)
+python scripts/lora_val_check.py A-middle A-uniform B-uniform B-middle
+python scripts/lora_report.py
 ```
 
 **Interruptions are safe.** After every epoch the full training state is written atomically to
@@ -170,6 +176,7 @@ Re-embedding resumes per 4,096-crop part. Check before trusting re-embedded vect
 
 ## Status
 
-Embeddings done (SigLIP 2 + tight crops selected on validation, `docs/results/01`). Crop store,
-query set and baseline evaluation implemented (`spec-crops-queries-baseline.md`); awaiting the
-Colab crop run and review of `queries/phrasings.csv` before the baseline is run.
+Embeddings done (SigLIP 2 + tight crops, `docs/results/01`). Frozen baseline on the eval split
+done (`docs/results/02`: Q1 mAP 0.179, Q2 R@10 0.510). LoRA fine-tuning done
+(`docs/results/03`: Q1 mAP 0.179 → 0.313 on Protocol A, 0.174 → 0.280 on unseen cameras; Q2 S@10
+0.82 → 0.90). Next: VLM teacher / temporal re-ranker spec.

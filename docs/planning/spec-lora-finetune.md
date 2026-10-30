@@ -1,9 +1,9 @@
 # Spec — LoRA Fine-Tuning of the SigLIP 2 Image Encoder
 
 **Date:** 2026-10-28
-**Status:** **Approved for build 2026-10-30** (§11)
+**Status:** **Approved for build 2026-10-30** (§11) · **Complete 2026-10-30** — results in `docs/results/03-lora.md` (§13)
 **Depends on:** `spec-crops-queries-baseline.md` (complete), `docs/results/02-frozen-baseline.md`
-**Log:** caption bank D-019; spec approval D-020
+**Log:** caption bank D-019; spec approval D-020; results D-021
 
 ---
 
@@ -351,3 +351,13 @@ Choices made while building, within the approved design — listed so they can b
 Protocol A S@1 0.273 · S@5 0.655 · S@10 0.820; Protocol B 0.275 · 0.703 · 0.849
 (random A: 0.116 · 0.385 · 0.567).
 
+---
+
+## 13. Results (2026-10-30) → `docs/results/03-lora.md`, log D-021
+
+Selected on validation (before eval was read): **A-middle** (val mAP 0.437 vs uniform 0.418) and
+**B-uniform** (0.3776 vs middle 0.3756, a near-tie). Eval, each model on its own protocol:
+Q1 mAP A 0.179 → **0.313**, B 0.174 → **0.280**; Q2 S@10 A 0.819 → 0.902. H1 confirmed; H2
+rejected as stated (motion-defined activities also gain, but stay the weakest); H3 weak support
+(gap 0.033, most of the gain transfers to unseen cameras); H4 rejected (sampling variants tie on
+eval; the A validation win rests on one activity).

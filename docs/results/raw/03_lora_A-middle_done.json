@@ -1,0 +1,40 @@
+{
+ "config": {
+  "protocol": "A",
+  "frame_mode": "middle",
+  "encoder": "siglip2",
+  "model_revision": "unpinned",
+  "lora_rank": 16,
+  "lora_alpha": 32,
+  "lora_dropout": 0.1,
+  "lr": 0.0001,
+  "weight_decay": 0.01,
+  "batch": 64,
+  "max_epochs": 100,
+  "warmup_epochs": 2,
+  "plateau_patience": 2,
+  "plateau_factor": 0.5,
+  "stop_patience": 5,
+  "min_delta": 0.0001,
+  "val_min_instances": 5,
+  "top_m": 3,
+  "seed": 0,
+  "max_steps_per_epoch": 0,
+  "captions_sha": "139d6fc19a02a9ad",
+  "phrasings_sha": "331bb6bba25a73bd",
+  "store_id": "84b0a9ac41c5"
+ },
+ "config_hash": "0c0f885a8dc4",
+ "stopped": "no validation improvement for 5 epochs",
+ "epochs_run": 21,
+ "best_epoch": 16,
+ "best_val_map": 0.4370606248659424,
+ "frozen_val_map": 0.2717,
+ "adapter_hash": "636dcb83bf7c",
+ "trainable": {
+  "total": 94063872,
+  "trainable": 1179648,
+  "percent": 1.254,
+  "adapted_modules": 48
+ }
+}
