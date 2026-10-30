@@ -142,6 +142,12 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
 - **Decision:** owner approved the 192 captions as written; `queries/train_captions.csv` frozen (sha256 prefix `139d6fc19a02a9ad`).
 - **Follow-ups:** edge-frame label noise proposed as a D4 addition; owner's "general phone-use caption" idea recorded in the spec (§10) for later, not adopted now.
 
+### D-020 · LoRA fine-tuning spec approved for build (2026-10-30) → `docs/planning/spec-lora-finetune.md`
+- **Approved as drafted:** D2 image-tower LoRA only (image + text LoRA later, separate spec), D3 label-aware sigmoid loss, D7 checkpoint selection on validation only, D8 one model per protocol, D11 Success@K (K = 1, 5, 10, defined before any adapted result).
+- **Changed in review:** D5 augmentation — no horizontal flip; zoom in/out, stretch, resolution degradation, mild colour jitter (owner). D6 — up to 100 epochs, patience 5 (owner; was 15 / 3); LR schedule changed to warm-up + reduce-on-plateau, because a cosine laid over 100 epochs would barely decay before early stopping. D4 — train both uniform and middle-weighted frame sampling (edge frames include MEVA's ~1 s lead-in/out; D-019) → 4 runs; per protocol the variant is chosen on validation, eval reported for all four (H4 added).
+- **Added by owner:** D13 crash-safe per-epoch checkpoints with exact, config-checked resume.
+- **Basis:** owner review rounds 1–2 (2026-10-29/30).
+
 ---
 
 ## Open decisions
