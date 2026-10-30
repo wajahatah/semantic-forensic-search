@@ -78,12 +78,18 @@ src/sfs/                      the package (tested locally, run on Colab via the 
   data/extract_crops.py       crop store job + integrity gate (Colab)
   embed/encoder.py            SigLIP and SigLIP 2 wrappers, encoder_id
   embed/run.py                resumable per-video embedding job
+  embed/reembed.py            re-embed all tight crops with a trained LoRA adapter (resumable)
   store/shards.py             embedding shard format
   store/crops.py              packed crop store (tight = native PNG, context = JPEG)
   eval/queries.py             Q1 category + Q2 forensic query sets
   eval/metrics.py             AP, P@K, R-precision, Recall@K, MRR, Success@K
   eval/retrieval.py           frame -> instance scoring (mean of top-m)
   eval/baseline.py            retrieval evaluation of any embeddings file (local)
+  train/data.py               packed tight-crop file, instance sampler, augmentation
+  train/captions.py           training caption bank + disjointness rule vs eval phrasings
+  train/loss.py               label-aware sigmoid loss
+  train/lora.py               LoRA on the SigLIP 2 vision tower
+  train/run.py                training loop: validation-only selection, crash-safe resume
 queries/phrasings.csv         reviewed natural-language query phrasings (3 per activity) — EVAL ONLY
 queries/train_captions.csv    reviewed training captions (6 per activity), disjoint from the above
 tests/                        pytest suite (`pytest`; real-model tests: `pytest -m slow`)
@@ -133,6 +139,32 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 
 Heavy jobs (embedding the corpus) run on Colab with data mounted from Google Drive. Only embedding
 shards and the manifest are brought to the local machine.
+
+---
+
+## LoRA fine-tuning (local)
+
+Spec: `docs/planning/spec-lora-finetune.md`. Runs on the laptop GPU (peak 5 GB at batch 64).
+
+```bash
+# 1. once: pack the tight crops of the verified crop store (8.5 GB, ~1 min)
+python -c "from sfs.train.data import build_packed; build_packed('data/crops_v2', 'data/packed_tight')"
+
+# 2. train all four runs (protocol A/B x uniform/middle-weighted frame sampling)
+python -m sfs.train.run --runs A-uniform,A-middle,B-uniform,B-middle --out runs/lora     --packed data/packed_tight --manifest manifest_v2_drive/manifest_v2.csv     --captions queries/train_captions.csv --phrasings queries/phrasings.csv
+
+# 3. re-embed with the selected adapter, then evaluate on that protocol only
+python -m sfs.embed.reembed --packed data/packed_tight --baseline manifest_v2_drive/embeddings_v2_siglip2.npz     --adapter runs/lora/A-middle/best/adapter.pt --out data/embeddings_lora/A-middle
+python -m sfs.eval.baseline --manifest manifest_v2_drive/manifest_v2.csv     --embeddings data/embeddings_lora/A-middle/embeddings.npz --phrasings queries/phrasings.csv     --views tight --protocols A --out runs/lora/eval/A-middle
+```
+
+**Interruptions are safe.** After every epoch the full training state is written atomically to
+`last.pt` (previous one kept as `prev.pt`). If the laptop shuts down or the job is stopped, run the
+same command again: it resumes after the last finished epoch (at most ~1 min lost), skips runs that
+already finished, and refuses to resume if any training setting changed. The best validation epoch
+is kept in `best/adapter.pt`; `train_log.csv` has one row per epoch (epoch 0 = untrained model).
+Re-embedding resumes per 4,096-crop part. Check before trusting re-embedded vectors:
+`python -m sfs.embed.reembed ... --check-baseline 2000` (adapter off must reproduce the baseline).
 
 ---
 
