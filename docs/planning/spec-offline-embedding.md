@@ -1,7 +1,7 @@
 # Spec — Offline Data Preparation & Embedding Generation
 
 **Date:** 2026-09-28
-**Status:** Draft for review — NOT approved for build
+**Status:** APPROVED 2026-10-21 — amendments in §8 and §9 supersede earlier sections.
 **Related:** [`spec-retrieval-system.md`](spec-retrieval-system.md) (serving path), [`project-selection.md`](project-selection.md) Plan F
 
 ---
@@ -229,3 +229,75 @@ exists to catch a broken pipeline before any training is built on top of it.
 4. **Official split** (`kitware-meva-training` → train/val, `kitware` → eval) with camera-overlap reporting.
 5. **Annotated clips only** in the index; annotation-driven download if the D1 gate fails.
 6. **Move to a `src/sfs` package** with tests; Colab becomes a thin runner.
+
+---
+
+## 8. Review outcome and amendments (2026-10-21)
+
+Where this section conflicts with §3, this section wins.
+
+| # | Decision | Outcome |
+|---|---|---|
+| 1 | Encoder | **Amended.** Embed with **both SigLIP (`google/siglip-base-patch16-224`) and SigLIP 2 (`google/siglip2-base-patch16-224`)** in the same decoding pass. The winner is selected on the **validation** split, never on eval. Each has its own `encoder_id`; shards are kept separate per encoder. |
+| 2 | Region policy | **Amended — three views** (rationale below). |
+| 3 | Sampling | Approved. 2 fps, cap 16, both exposed as configuration rather than constants. |
+| 4 | Split | **Amended.** Protocol A = official split (primary). Protocol B = **unseen-camera** split (eval cameras never appear in train), reported as a generalisation test. Protocol B is *reported alongside*, not chosen between — selecting a split by which gives the higher score would be selecting on the test set. |
+| 5 | Corpus | Approved, with clarification: unannotated clips are **not** used for metrics (no ground truth exists for them). They may appear only in the qualitative demo. |
+| 6 | Package + runner | Approved, with runner changed to the **VS Code Google Colab extension** on the Pro account (see "Data source" below). |
+
+### D4 (amended) — three views
+
+The original crop policy risked discarding context that distinguishes look-alike actions (e.g. a
+fight and a hug share close proximity; setting and bystander reactions can separate them). Each
+sampled frame is embedded three ways:
+
+| View | Region | Purpose |
+|---|---|---|
+| `tight` | union of actor boxes, +25% pad per side, squared, min side 224 px | Maximum detail on the actors |
+| `context` | union of actor boxes expanded to **3× width and height**, squared, min side 448 px, clipped to frame | Actors plus surroundings |
+| `full` | whole frame | Ablation: what cropping buys at all |
+
+A lone person in a large frame is handled by `context`: the box grows around them. The
+tight-vs-context-vs-full comparison is a reported result. Per frame we also record the actor box
+size in pixels, so accuracy can be analysed against subject size — that is where low image
+quality will actually show up.
+
+**Clarification on image quality.** A blurry or small crop does not corrupt the data; it produces a
+weaker embedding for that frame. Upscaling a small crop adds no information but removes none
+either. The real failure mode is subjects too small to resolve, which the box-size analysis
+measures directly rather than assumes.
+
+**Known limitation.** Embeddings are per frame; motion is only captured through aggregation over
+sampled frames. Actions that differ mainly in motion (fight vs hug) may remain confusable — a
+limitation to state in the report, and a candidate for future work with a video encoder.
+
+Storage estimate rises to ~3 views × 2 encoders ≈ **750 MB–1.5 GB** total; still a reasonable download.
+
+### Data source (amended)
+
+The VS Code Colab extension does not support `drive.mount()` (per the extension's documentation
+and setup guides as of late 2025; to be re-checked at setup), and the Pro account is a different
+Google account from the one holding the Drive data. Therefore:
+
+- **Video:** downloaded directly from S3 into the runtime's local disk at datacenter speed — only
+  the annotated clips needed (a few tens of GB), not the 70 GB Drive copy.
+- **Annotations:** cloned from `gitlab.kitware.com` into the runtime (reachable from Colab; ~30 s).
+- **Outputs:** embedding shards written to runtime disk, then downloaded through VS Code's file
+  explorer (≤1.5 GB). Shards are resumable, so a runtime reset costs one video's work.
+
+Drive is no longer on the critical path. The existing Drive copy remains a backup.
+
+---
+
+## 9. Final amendment (2026-10-21) — runner and data source
+
+Supersedes "Data source (amended)" in §8 and the runner in §8 row 6.
+
+- **Runner:** browser Colab (Pro account). No VS Code extension. The repo is private, so code is
+  **pasted**, not cloned. To prevent drift between tested code and pasted code, a build script
+  generates the Colab cell from the `src/sfs` package — the pasted cell *is* the tested code.
+- **Data source:** the existing Drive copy (`MyDrive/DL-Project/meva`), mounted with
+  `drive.mount()` as before. If the Pro account is not the Drive owner, the `DL-Project` folder is
+  shared with it. **Nothing from S3 is downloaded to the local machine.** The only artefacts that
+  come to the local machine are the embedding shards and manifest (≤1.5 GB).
+- **Split:** Protocol A (official) primary, Protocol B (unseen camera) reported — confirmed.
