@@ -5,7 +5,9 @@
 #   pip install -r requirements.txt
 
 # --- models ---
-transformers>=4.49        # 4.49 is the first release with SigLIP 2
+transformers>=5.0         # SigLIP 2 needs >=4.49; LoRA preprocessing matches the v5 image
+                          # processor (torchvision resize, pixel-identical test).
+                          # Tested: transformers 5.20, torch 2.14 cu126, peft 0.21
 sentencepiece             # SigLIP (v1) tokenizer
 protobuf
 accelerate
