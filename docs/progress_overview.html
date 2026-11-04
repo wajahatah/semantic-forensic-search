@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Progress Overview</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --text: #1f2328; --muted: #5b6168; --line: #e3e3df;
+    --accent: #2457c5; --good: #1a7f37; --bad: #b42318; --mid: #9a6700; --now: #fff4d6; --nowline: #e0b84f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171a; --card: #1e2125; --text: #e6e6e3; --muted: #a0a6ad; --line: #30343a;
+      --accent: #7aa2ff; --good: #4ac26b; --bad: #ff7b72; --mid: #e3b341; --now: #2b2616; --nowline: #8a7330;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15171a; --card: #1e2125; --text: #e6e6e3; --muted: #a0a6ad; --line: #30343a;
+    --accent: #7aa2ff; --good: #4ac26b; --bad: #ff7b72; --mid: #e3b341; --now: #2b2616; --nowline: #8a7330;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 28px 16px 60px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.2rem; margin: 36px 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 10px 0; }
+  .now { background: var(--now); border-color: var(--nowline); }
+  .step { display: grid; grid-template-columns: 34px 1fr; gap: 10px; }
+  .num { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff;
+         display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: .9rem; }
+  .step h3 { margin: 2px 0 6px; font-size: 1.02rem; }
+  .date { color: var(--muted); font-weight: 400; font-size: .88rem; }
+  .row { margin: 3px 0; }
+  .lbl { display: inline-block; min-width: 92px; font-weight: 600; color: var(--muted); font-size: .9rem; }
+  .good { color: var(--good); font-weight: 600; }
+  .bad { color: var(--bad); font-weight: 600; }
+  .mid { color: var(--mid); font-weight: 600; }
+  ul { margin: 6px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .tag { display: inline-block; font-size: .78rem; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: var(--accent); }
+  @media (max-width: 560px) { .lbl { display: block; min-width: 0; } }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Semantic Forensic Search — where we are</h1>
+<p class="sub">Search surveillance clips by typing a sentence ("a person opens a car door"), while keeping the
+expensive AI calls to a minimum. Dataset: MEVA. Updated 4 Nov 2026, 15:45.</p>
+
+<div class="card now">
+  <strong>Right now</strong>
+  <ul>
+    <li><strong>All planned AI-model experiments are finished.</strong> The 32B chain ended at 15:30 and the final numbers are written up (Result 05).</li>
+    <li>The office GPU is <strong>still held for us</strong> until you say stop. My recommendation is to release it, because the 32B is no better than the 8B (step 10).</li>
+    <li>Next big piece: the <strong>search demo</strong> (needs its own plan).</li>
+  </ul>
+</div>
+
+<h2>What we did, step by step</h2>
+
+<div class="card step"><div class="num">1</div><div>
+  <h3>Choose the topic and dataset <span class="date">· 12–20 Sep</span></h3>
+  <div class="row"><span class="lbl">Tried</span>Several ideas; some had no ground truth, were on Kaggle, or were already published (PlantCity).</div>
+  <div class="row"><span class="lbl">Decided</span>MEVA (public, never used for sentence search). Proposal submitted 20 Sep.</div>
+</div></div>
+
+<div class="card step"><div class="num">2</div><div>
+  <h3>Prepare the data <span class="date">· 28 Sep – 22 Oct</span></h3>
+  <div class="row"><span class="lbl">Did</span>Downloaded ~70 GB of video, listed 10,678 activity clips, cut out the people in each frame.
+    Two test setups: <strong>A</strong> = normal split, <strong>B</strong> = cameras never seen in training (harder).</div>
+  <div class="row"><span class="lbl">Problem</span>99.5 % of crops were wrong (annotation files had two formats) → fixed and re-done.</div>
+</div></div>
+
+<div class="card step"><div class="num">3</div><div>
+  <h3>Pick the image model <span class="date">· 23 Oct · Result 01</span></h3>
+  <div class="row"><span class="lbl">Tried</span>SigLIP vs SigLIP 2, with tight crop / wider crop / full frame.</div>
+  <div class="row"><span class="lbl">Found</span><span class="good">SigLIP 2 on the tight crop</span> is best — about 2× better than the full frame.</div>
+  <div class="row"><span class="lbl">Decided</span>Use it as the base for everything.</div>
+</div></div>
+
+<div class="card step"><div class="num">4</div><div>
+  <h3>Baseline: search without any training <span class="date">· 27 Oct · Result 02</span></h3>
+  <div class="row"><span class="lbl">Found</span>Score (mAP) <strong>0.179</strong>. Activities defined by movement (turning, opening doors) were at chance.</div>
+  <div class="row"><span class="lbl">Decided</span>Fine-tune the image model on our data.</div>
+</div></div>
+
+<div class="card step"><div class="num">5</div><div>
+  <h3>Fine-tune the image model (LoRA) <span class="date">· 30 Oct · Result 03</span></h3>
+  <div class="row"><span class="lbl">Found</span><span class="good">0.179 → 0.313</span> (A) and 0.174 → 0.280 (B). Big improvement.</div>
+  <div class="row"><span class="lbl">Decided</span>Add a second stage: a small "student" that looks at the frame sequence, and an AI video model (VLM) as a teacher / final check.</div>
+</div></div>
+
+<div class="card step"><div class="num">6</div><div>
+  <h3>Two-stage search with small 2B video models <span class="date">· 31 Oct · Result 04</span></h3>
+  <div class="row"><span class="lbl">Found</span><span class="good">Student works:</span> correct clip ranked first for 53 % (A) / 52 % (B) of searches, with
+    <strong>zero</strong> expensive AI calls. Score 0.476 / 0.442.<br>
+    <span class="bad">The 2B video models add little</span> (≤ 3 points) and failed our quality check;
+    teaching the student with them did not help.</div>
+  <div class="row"><span class="lbl">Decided</span>You answered 7 questions → a set of follow-up experiments (steps 7–10).</div>
+</div></div>
+
+<div class="card step"><div class="num">7</div><div>
+  <h3>Follow-ups with the 2B models <span class="date">· 3 Nov · Result 05</span></h3>
+  <table>
+    <tr><th>Question</th><th>Answer</th></tr>
+    <tr><td>Run the AI model on every clip?</td><td><span class="bad">No</span> — slower and worse than the fine-tuned model.</td></tr>
+    <tr><td>Merge "turns left" and "turns right"?</td><td><span class="good">Yes</span> — found well (0.31 → 0.57–0.62). Turning is seen; left vs right is the hard part.</td></tr>
+    <tr><td>Give the model 16 frames instead of 8?</td><td><span class="bad">No</span> improvement.</td></tr>
+    <tr><td>Quality check on all validation clips?</td><td>2B still <span class="bad">fails</span>.</td></tr>
+  </table>
+  <div class="row"><span class="lbl">Decided</span>Try bigger video models on the office server. Your rule: check on the top 50 first, then on all clips; both must pass.</div>
+</div></div>
+
+<div class="card step"><div class="num">8</div><div>
+  <h3>Other model families <span class="date">· 3 Nov</span></h3>
+  <div class="row"><span class="lbl">Gemma 4 E4B</span><span class="bad">Failed</span> the check (colleague's suggestion) → stopped and deleted.</div>
+  <div class="row"><span class="lbl">Qwen2.5-VL</span>3B and 7B (already on the server) <span class="bad">failed</span> → kept, because your nexa-vlm project uses them.</div>
+</div></div>
+
+<div class="card step"><div class="num">9</div><div>
+  <h3>Bigger model: Qwen3-VL-8B <span class="date">· 3 Nov · office server</span></h3>
+  <div class="row"><span class="lbl">Found</span><span class="mid">Missed the check by a hair</span> (0.0009 short). But as the last step on a short list
+    it lifted "correct clip first" from 53 % to <span class="good">59 %</span> on A (a real gain); on B the gain was not certain.</div>
+  <div class="row"><span class="lbl">Decided</span>Try the 32B model.</div>
+</div></div>
+
+<div class="card step"><div class="num">10</div><div>
+  <h3>Biggest model: Qwen3-VL-32B <span class="date">· 3–4 Nov · office server</span></h3>
+  <div class="row"><span class="lbl">Found</span><span class="good">First model to pass both checks</span>:
+    top 50 (+0.017 A, +0.037 B) and all validation clips (+0.018 A, +0.047 B). Bigger model = better, every time (2B → 8B → 32B).
+    It is slow (about 25 s to answer 64 questions on one clip) because it does not fit in the GPU.</div>
+  <div class="row"><span class="lbl">Did</span>Full chain with it: labelled 41,266 training pairs → retrained the students → final two-stage numbers (4 Nov).</div>
+  <div class="row"><span class="lbl">Found</span><span class="bad">Teaching the student with it still does not help</span> (the student trained on human labels stays best).<br>
+    As the last step on a short list of 10: "correct clip first" <span class="good">53 % → 60 % (A), 52 % → 56 % (B)</span>.
+    This is the first model whose gain is certain on <strong>both</strong> setups, including unseen cameras.<br>
+    <span class="mid">But it is not better than the 8B</span> (difference under 1 point, could be chance), and each check takes ~13× longer
+    (1.7 s vs 0.13 s per question).</div>
+  <div class="row"><span class="lbl">Conclusion</span>The 8B is the best value on this hardware; the bigger model buys no extra accuracy.
+    The small student stays the most useful step for its cost.</div>
+</div></div>
+
+<details class="card">
+  <summary>Behind the scenes (setup work)</summary>
+  <ul>
+    <li>Office server: our own Python environment, the crop store copied over, all model files checked.</li>
+    <li>GPU kept for us the whole time (the team's Ollama runs slower meanwhile; the team agreed).</li>
+    <li>Access from home through Tailscale (only our devices; to be removed at the end).</li>
+    <li>Code: 152 automatic tests pass. Every decision is logged with its reason in <code>docs/EXPERIMENT_LOG.md</code>.</li>
+  </ul>
+</details>
+
+<h2>What is left</h2>
+
+<table class="card" style="display:table">
+  <tr><th>#</th><th>Work</th><th>Who / size</th></tr>
+  <tr><td>1</td><td>Your call: stop the AI-model experiments and release the office GPU (recommended), or test something else first</td><td>You, short</td></tr>
+  <tr><td>2</td><td>Your open decisions: accept the server set-up check; rewrite captions for 2 activities; optionally retrain the student on "vehicle turns"; delete Qwen2.5-VL 3B/7B</td><td>You, short</td></tr>
+  <tr><td>3</td><td><strong>Search demo</strong> from the proposal (alerts in, typed question out, results shown)</td><td>Biggest remaining piece; needs its own spec</td></tr>
+  <tr><td>4</td><td>Final report for the instructor (results, recall-vs-cost curve, what worked and what did not)</td><td>After 1 and 3; needs its own plan</td></tr>
+  <tr><td>5</td><td>Save the work in git: 9 commits waiting to be pushed, plus all work since 31 Oct uncommitted</td><td>Your approval for each commit</td></tr>
+  <tr><td>6</td><td>Clean-up at the end: release the server GPU, remove the Tailscale access, delete our files on the server</td><td>Me + you, ~30 min</td></tr>
+</table>
+
+<details class="card">
+  <summary>Words used on this page</summary>
+  <ul>
+    <li><strong>mAP</strong> — how well all correct clips are ranked near the top (0 to 1, higher is better).</li>
+    <li><strong>"Correct clip first"</strong> — share of searches where the very first result is right (S@1).</li>
+    <li><strong>VLM</strong> — an AI model that watches the video and answers "does this show …? yes / no". Accurate-ish but expensive.</li>
+    <li><strong>Student</strong> — a small, fast model trained to re-rank results; no expensive calls at search time.</li>
+    <li><strong>Quality check (G1)</strong> — does adding the VLM to our fine-tuned model improve validation results by at least 0.02?</li>
+    <li><strong>A / B</strong> — normal test split / test on cameras never seen in training.</li>
+  </ul>
+</details>
+
+</main>
+</body>
+</html>
