@@ -1,0 +1,68 @@
+# Merged-turn view (spec-vlm-followups E1, owner approval 2026-11-03): the frozen 22-activity
+# phrasings (queries/phrasings.csv, D-017) with vehicle_turns_left and vehicle_turns_right replaced by
+# one activity, vehicle_turns, and three phrasings that name no direction. An EXTRA view only:
+# queries/phrasings.csv stays the main, frozen query set. Used with cascade_run --merge.
+activity,phrasing
+hand_interacts_with_person,two people shaking hands
+hand_interacts_with_person,a person touching another person's hand
+hand_interacts_with_person,two people giving each other a high five
+person_carries_heavy_object,a person carrying a heavy object
+person_carries_heavy_object,someone hauling a large box with both arms
+person_carries_heavy_object,a person struggling to carry something heavy
+person_closes_vehicle_door,a person closing a car door
+person_closes_vehicle_door,someone shutting the door of a vehicle
+person_closes_vehicle_door,a person pushing a car door shut
+person_enters_scene_through_structure,a person coming in through a doorway
+person_enters_scene_through_structure,someone entering the area through a door or gate
+person_enters_scene_through_structure,a person walking in through an entrance
+person_enters_vehicle,a person getting into a car
+person_enters_vehicle,someone climbing into a vehicle
+person_enters_vehicle,a person sitting down inside a parked car
+person_exits_scene_through_structure,a person walking out through a doorway
+person_exits_scene_through_structure,someone leaving the area through a door or gate
+person_exits_scene_through_structure,a person going out through an exit
+person_exits_vehicle,a person getting out of a car
+person_exits_vehicle,someone stepping out of a vehicle
+person_exits_vehicle,a passenger climbing out of a parked car
+person_opens_facility_door,a person opening the door of a building
+person_opens_facility_door,someone pulling open an entrance door
+person_opens_facility_door,a person pushing open a door to go inside
+person_opens_vehicle_door,a person opening a car door
+person_opens_vehicle_door,someone pulling open the door of a parked vehicle
+person_opens_vehicle_door,a person opening the door of a vehicle to get in
+person_picks_up_object,a person picking up an object
+person_picks_up_object,someone lifting an item off the ground
+person_picks_up_object,a person bending down to grab something
+person_puts_down_object,a person putting an object down
+person_puts_down_object,someone setting a bag down on the ground
+person_puts_down_object,a person placing an item on a surface
+person_sits_down,a person sitting down
+person_sits_down,someone taking a seat on a chair
+person_sits_down,a person lowering themselves onto a bench
+person_stands_up,a person standing up from a seat
+person_stands_up,someone getting up from a chair
+person_stands_up,a seated person rising to their feet
+person_talks_on_phone,a person talking on a phone
+person_talks_on_phone,someone holding a phone to their ear
+person_talks_on_phone,a person making a phone call
+person_talks_to_person,two people talking to each other
+person_talks_to_person,a person having a conversation with someone
+person_talks_to_person,people standing together and chatting
+person_texts_on_phone,a person texting on a phone
+person_texts_on_phone,someone looking down and typing on a smartphone
+person_texts_on_phone,a person using their mobile phone with their thumbs
+person_transfers_object,a person handing an object to another person
+person_transfers_object,someone passing a bag to someone else
+person_transfers_object,two people exchanging an item
+vehicle_reverses,a car reversing
+vehicle_reverses,a vehicle backing up
+vehicle_reverses,a car driving backwards out of a parking spot
+vehicle_starts,a parked car starting to move
+vehicle_starts,a vehicle pulling away from a stop
+vehicle_starts,a stationary car beginning to drive off
+vehicle_stops,a car coming to a stop
+vehicle_stops,a moving vehicle stopping
+vehicle_stops,a car pulling up and parking
+vehicle_turns,a vehicle turning at an intersection
+vehicle_turns,a car making a turn
+vehicle_turns,a car turning onto another road
