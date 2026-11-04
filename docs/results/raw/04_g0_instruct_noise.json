@@ -1,0 +1,9 @@
+{
+ "purpose": "G0 cached-vs-full check failed (0.368 > 0.1). Is it a bug or bf16 rounding? 3 G0 validation clips x 16 captions, context view.",
+ "margin_range": [-13.34, 10.77], "margin_std": 5.09,
+ "cached_b1_vs_full":  {"max": 0.631, "mean": 0.162, "spearman": 0.9950},
+ "cached_b16_vs_full": {"max": 0.444, "mean": 0.071, "spearman": 0.9953},
+ "cached_b16_vs_b1":   {"max": 0.787, "mean": 0.165, "spearman": 0.9934},
+ "full_eager_vs_full_sdpa_noise_floor": {"max": 0.899, "mean": 0.272, "spearman": 0.9903},
+ "conclusion": "Cached-vs-full differences are below the bf16 noise between two mathematically identical attention kernels; the fp32 test (tests/test_teacher.py) shows the cached path is exact. The 0.1 threshold is below the bf16 noise floor. Cached path used; flagged for owner feedback (O3)."
+}
