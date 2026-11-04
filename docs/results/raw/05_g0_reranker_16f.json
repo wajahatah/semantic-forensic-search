@@ -1,0 +1,33 @@
+{
+ "model_id": "Qwen3-VL-Reranker-2B@5b295e981b1d",
+ "kind": "reranker",
+ "view": "context",
+ "n_frames": 16,
+ "clips": [
+  3669,
+  6119,
+  6144,
+  6217,
+  6285,
+  8434,
+  9375,
+  9376,
+  9407,
+  9420,
+  9451,
+  9466,
+  9472,
+  9481,
+  9543,
+  9599,
+  9619,
+  9674,
+  10139,
+  10542
+ ],
+ "peak_vram_gb": 4.597533696,
+ "seconds_per_pair_uncached": 0.16607091249898076,
+ "texts_per_clip": 64,
+ "determinism_max_abs_diff": 0.0,
+ "pass": true
+}

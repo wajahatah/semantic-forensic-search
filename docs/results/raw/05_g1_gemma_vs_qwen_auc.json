@@ -1,0 +1,14 @@
+{
+ "A": {
+  "Qwen2B-Instruct": 0.6279,
+  "Qwen2B-Reranker": 0.6148,
+  "Gemma4-E4B": 0.5417,
+  "LoRA": 0.6714
+ },
+ "B": {
+  "Qwen2B-Instruct": 0.5896,
+  "Qwen2B-Reranker": 0.5956,
+  "Gemma4-E4B": 0.5861,
+  "LoRA": 0.596
+ }
+}

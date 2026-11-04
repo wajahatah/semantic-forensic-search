@@ -1,0 +1,281 @@
+{
+ "k": "all",
+ "min_gain": 0.02,
+ "configs": {
+  "instruct-tight": {
+   "scorer_id": [
+    "4828c1b8a155",
+    "4828c1b8a155"
+   ],
+   "A": {
+    "lora_val_map": 0.4370841830861813,
+    "lora_per_activity": {
+     "hand_interacts_with_person": 0.2732,
+     "person_carries_heavy_object": 0.5278,
+     "person_closes_vehicle_door": 0.273,
+     "person_enters_scene_through_structure": 0.471,
+     "person_enters_vehicle": 0.3999,
+     "person_exits_scene_through_structure": 0.4387,
+     "person_opens_facility_door": 0.3124,
+     "person_opens_vehicle_door": 0.5653,
+     "person_picks_up_object": 0.3227,
+     "person_puts_down_object": 0.2817,
+     "person_stands_up": 0.2025,
+     "person_talks_to_person": 0.7448,
+     "person_texts_on_phone": 0.4895,
+     "vehicle_turns_left": 0.8175,
+     "vehicle_turns_right": 0.4361
+    },
+    "by_weight": {
+     "0.0": {
+      "val_map": 0.34849142805778593,
+      "per_activity": {
+       "hand_interacts_with_person": 0.1768,
+       "person_carries_heavy_object": 0.2946,
+       "person_closes_vehicle_door": 0.2948,
+       "person_enters_scene_through_structure": 0.4955,
+       "person_enters_vehicle": 0.4023,
+       "person_exits_scene_through_structure": 0.3115,
+       "person_opens_facility_door": 0.2785,
+       "person_opens_vehicle_door": 0.6111,
+       "person_picks_up_object": 0.3294,
+       "person_puts_down_object": 0.2834,
+       "person_stands_up": 0.1105,
+       "person_talks_to_person": 0.314,
+       "person_texts_on_phone": 0.3035,
+       "vehicle_turns_left": 0.4067,
+       "vehicle_turns_right": 0.6149
+      }
+     },
+     "0.25": {
+      "val_map": 0.39479280338565104,
+      "per_activity": {
+       "hand_interacts_with_person": 0.2203,
+       "person_carries_heavy_object": 0.3392,
+       "person_closes_vehicle_door": 0.2975,
+       "person_enters_scene_through_structure": 0.558,
+       "person_enters_vehicle": 0.4269,
+       "person_exits_scene_through_structure": 0.3615,
+       "person_opens_facility_door": 0.3222,
+       "person_opens_vehicle_door": 0.628,
+       "person_picks_up_object": 0.3373,
+       "person_puts_down_object": 0.293,
+       "person_stands_up": 0.1026,
+       "person_talks_to_person": 0.4583,
+       "person_texts_on_phone": 0.4653,
+       "vehicle_turns_left": 0.4337,
+       "vehicle_turns_right": 0.678
+      }
+     },
+     "0.5": {
+      "val_map": 0.418155903618825,
+      "per_activity": {
+       "hand_interacts_with_person": 0.2515,
+       "person_carries_heavy_object": 0.3694,
+       "person_closes_vehicle_door": 0.309,
+       "person_enters_scene_through_structure": 0.5867,
+       "person_enters_vehicle": 0.4409,
+       "person_exits_scene_through_structure": 0.3957,
+       "person_opens_facility_door": 0.3334,
+       "person_opens_vehicle_door": 0.6436,
+       "person_picks_up_object": 0.3432,
+       "person_puts_down_object": 0.2958,
+       "person_stands_up": 0.1029,
+       "person_talks_to_person": 0.5439,
+       "person_texts_on_phone": 0.5352,
+       "vehicle_turns_left": 0.4587,
+       "vehicle_turns_right": 0.6624
+      }
+     },
+     "1.0": {
+      "val_map": 0.44038172130247977,
+      "per_activity": {
+       "hand_interacts_with_person": 0.272,
+       "person_carries_heavy_object": 0.401,
+       "person_closes_vehicle_door": 0.3124,
+       "person_enters_scene_through_structure": 0.6121,
+       "person_enters_vehicle": 0.4381,
+       "person_exits_scene_through_structure": 0.4245,
+       "person_opens_facility_door": 0.3558,
+       "person_opens_vehicle_door": 0.6493,
+       "person_picks_up_object": 0.3465,
+       "person_puts_down_object": 0.2945,
+       "person_stands_up": 0.1076,
+       "person_talks_to_person": 0.6269,
+       "person_texts_on_phone": 0.5746,
+       "vehicle_turns_left": 0.5326,
+       "vehicle_turns_right": 0.6577
+      }
+     },
+     "2.0": {
+      "val_map": 0.4554561311510433,
+      "per_activity": {
+       "hand_interacts_with_person": 0.293,
+       "person_carries_heavy_object": 0.4312,
+       "person_closes_vehicle_door": 0.2963,
+       "person_enters_scene_through_structure": 0.6294,
+       "person_enters_vehicle": 0.4593,
+       "person_exits_scene_through_structure": 0.4433,
+       "person_opens_facility_door": 0.372,
+       "person_opens_vehicle_door": 0.6517,
+       "person_picks_up_object": 0.3463,
+       "person_puts_down_object": 0.2872,
+       "person_stands_up": 0.1251,
+       "person_talks_to_person": 0.6903,
+       "person_texts_on_phone": 0.5874,
+       "vehicle_turns_left": 0.6265,
+       "vehicle_turns_right": 0.5928
+      }
+     }
+    },
+    "best_weight": 2.0,
+    "best_val_map": 0.4554561311510433,
+    "gain": 0.018371948064861976,
+    "vlm_only_val_map": 0.34849142805778593
+   },
+   "B": {
+    "lora_val_map": 0.3775507522045168,
+    "lora_per_activity": {
+     "hand_interacts_with_person": 0.2221,
+     "person_carries_heavy_object": 0.3446,
+     "person_enters_scene_through_structure": 0.3701,
+     "person_exits_scene_through_structure": 0.6212,
+     "person_opens_facility_door": 0.2409,
+     "person_picks_up_object": 0.3201,
+     "person_puts_down_object": 0.1829,
+     "person_sits_down": 0.0639,
+     "person_stands_up": 0.534,
+     "person_talks_on_phone": 0.7241,
+     "person_talks_to_person": 0.7766,
+     "person_texts_on_phone": 0.5196,
+     "person_transfers_object": 0.209,
+     "vehicle_starts": 0.1883,
+     "vehicle_stops": 0.1522,
+     "vehicle_turns_left": 0.5019,
+     "vehicle_turns_right": 0.447
+    },
+    "by_weight": {
+     "0.0": {
+      "val_map": 0.3175338181273675,
+      "per_activity": {
+       "hand_interacts_with_person": 0.1524,
+       "person_carries_heavy_object": 0.0777,
+       "person_enters_scene_through_structure": 0.4034,
+       "person_exits_scene_through_structure": 0.5,
+       "person_opens_facility_door": 0.3453,
+       "person_picks_up_object": 0.3596,
+       "person_puts_down_object": 0.1016,
+       "person_sits_down": 0.1233,
+       "person_stands_up": 0.3691,
+       "person_talks_on_phone": 0.4828,
+       "person_talks_to_person": 0.3595,
+       "person_texts_on_phone": 0.3834,
+       "person_transfers_object": 0.2225,
+       "vehicle_starts": 0.1248,
+       "vehicle_stops": 0.1895,
+       "vehicle_turns_left": 0.3371,
+       "vehicle_turns_right": 0.8661
+      }
+     },
+     "0.25": {
+      "val_map": 0.3594485602067449,
+      "per_activity": {
+       "hand_interacts_with_person": 0.1791,
+       "person_carries_heavy_object": 0.1305,
+       "person_enters_scene_through_structure": 0.4525,
+       "person_exits_scene_through_structure": 0.5321,
+       "person_opens_facility_door": 0.3406,
+       "person_picks_up_object": 0.3808,
+       "person_puts_down_object": 0.1175,
+       "person_sits_down": 0.126,
+       "person_stands_up": 0.4215,
+       "person_talks_on_phone": 0.5849,
+       "person_talks_to_person": 0.4646,
+       "person_texts_on_phone": 0.5102,
+       "person_transfers_object": 0.209,
+       "vehicle_starts": 0.1315,
+       "vehicle_stops": 0.2357,
+       "vehicle_turns_left": 0.364,
+       "vehicle_turns_right": 0.9303
+      }
+     },
+     "0.5": {
+      "val_map": 0.38947630239721204,
+      "per_activity": {
+       "hand_interacts_with_person": 0.1895,
+       "person_carries_heavy_object": 0.1851,
+       "person_enters_scene_through_structure": 0.4827,
+       "person_exits_scene_through_structure": 0.558,
+       "person_opens_facility_door": 0.3453,
+       "person_picks_up_object": 0.3909,
+       "person_puts_down_object": 0.1249,
+       "person_sits_down": 0.1166,
+       "person_stands_up": 0.4517,
+       "person_talks_on_phone": 0.6544,
+       "person_talks_to_person": 0.5391,
+       "person_texts_on_phone": 0.5507,
+       "person_transfers_object": 0.2135,
+       "vehicle_starts": 0.138,
+       "vehicle_stops": 0.3308,
+       "vehicle_turns_left": 0.3844,
+       "vehicle_turns_right": 0.9654
+      }
+     },
+     "1.0": {
+      "val_map": 0.4128866326140624,
+      "per_activity": {
+       "hand_interacts_with_person": 0.2057,
+       "person_carries_heavy_object": 0.2252,
+       "person_enters_scene_through_structure": 0.5139,
+       "person_exits_scene_through_structure": 0.5848,
+       "person_opens_facility_door": 0.3483,
+       "person_picks_up_object": 0.3957,
+       "person_puts_down_object": 0.1358,
+       "person_sits_down": 0.1059,
+       "person_stands_up": 0.483,
+       "person_talks_on_phone": 0.7165,
+       "person_talks_to_person": 0.6363,
+       "person_texts_on_phone": 0.5943,
+       "person_transfers_object": 0.2234,
+       "vehicle_starts": 0.1421,
+       "vehicle_stops": 0.3373,
+       "vehicle_turns_left": 0.4182,
+       "vehicle_turns_right": 0.953
+      }
+     },
+     "2.0": {
+      "val_map": 0.4245352846043653,
+      "per_activity": {
+       "hand_interacts_with_person": 0.2211,
+       "person_carries_heavy_object": 0.2645,
+       "person_enters_scene_through_structure": 0.5472,
+       "person_exits_scene_through_structure": 0.6163,
+       "person_opens_facility_door": 0.3343,
+       "person_picks_up_object": 0.3863,
+       "person_puts_down_object": 0.1469,
+       "person_sits_down": 0.0913,
+       "person_stands_up": 0.5067,
+       "person_talks_on_phone": 0.7622,
+       "person_talks_to_person": 0.7161,
+       "person_texts_on_phone": 0.6172,
+       "person_transfers_object": 0.1898,
+       "vehicle_starts": 0.1526,
+       "vehicle_stops": 0.3179,
+       "vehicle_turns_left": 0.4622,
+       "vehicle_turns_right": 0.8848
+      }
+     }
+    },
+    "best_weight": 2.0,
+    "best_val_map": 0.4245352846043653,
+    "gain": 0.04698453239984851,
+    "vlm_only_val_map": 0.3175338181273675
+   },
+   "pass": true,
+   "mean_gain": 0.03267824023235524
+  }
+ },
+ "teacher": "instruct-tight",
+ "pass": true,
+ "needs_owner_feedback": false
+}

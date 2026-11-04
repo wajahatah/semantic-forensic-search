@@ -1,0 +1,26 @@
+{
+ "pairs": 4800,
+ "max_abs_diff": 1.114950180053711,
+ "mean_abs_diff": 0.12647114894663294,
+ "p99_abs_diff": 0.5,
+ "spearman": 0.999050556638893,
+ "noise_floor_max": 0.899,
+ "rule": "max <= 0.899 (laptop eager-vs-sdpa noise floor) and spearman >= 0.99 (fixed before the result, D-034)",
+ "pass": false,
+ "pairs_over_noise_floor": 1,
+ "g1_laptop_2b": {
+  "A_val_map": 0.4458,
+  "B_val_map": 0.3797,
+  "vlm_only_A": 0.3944,
+  "vlm_only_B": 0.3533,
+  "pass": false
+ },
+ "g1_server_2b": {
+  "A_val_map": 0.4475,
+  "B_val_map": 0.3795,
+  "vlm_only_A": 0.3941,
+  "vlm_only_B": 0.3534,
+  "pass": false
+ },
+ "verdict": "FAIL by the pre-fixed rule (1 of 4,800 pairs at 1.115 > 0.899); flagged for owner feedback. Evidence it is bf16 noise between GPUs: mean diff 0.126 (half the laptop's own kernel noise 0.272), rank correlation 0.999, no growth with |margin|, G1 val mAP within 0.002 and same verdict. The rule compares a max over 4,800 pairs with a noise floor measured on 48. Work continues (standing gate rule)."
+}

@@ -1,0 +1,90 @@
+{
+ "A/instruct-tight": {
+  "long": {
+   "8": {
+    "mean_auc": 0.7427,
+    "n_queries": 30
+   },
+   "16": {
+    "mean_auc": 0.7387,
+    "n_queries": 30
+   }
+  },
+  "short": {
+   "8": {
+    "mean_auc": 0.612,
+    "n_queries": 42
+   },
+   "16": {
+    "mean_auc": 0.612,
+    "n_queries": 42
+   }
+  }
+ },
+ "B/instruct-tight": {
+  "long": {
+   "8": {
+    "mean_auc": 0.6474,
+    "n_queries": 36
+   },
+   "16": {
+    "mean_auc": 0.666,
+    "n_queries": 36
+   }
+  },
+  "short": {
+   "8": {
+    "mean_auc": 0.563,
+    "n_queries": 48
+   },
+   "16": {
+    "mean_auc": 0.563,
+    "n_queries": 48
+   }
+  }
+ },
+ "A/reranker-tight": {
+  "long": {
+   "8": {
+    "mean_auc": 0.7126,
+    "n_queries": 30
+   },
+   "16": {
+    "mean_auc": 0.7147,
+    "n_queries": 30
+   }
+  },
+  "short": {
+   "8": {
+    "mean_auc": 0.5914,
+    "n_queries": 42
+   },
+   "16": {
+    "mean_auc": 0.5914,
+    "n_queries": 42
+   }
+  }
+ },
+ "B/reranker-tight": {
+  "long": {
+   "8": {
+    "mean_auc": 0.6666,
+    "n_queries": 36
+   },
+   "16": {
+    "mean_auc": 0.6334,
+    "n_queries": 36
+   }
+  },
+  "short": {
+   "8": {
+    "mean_auc": 0.5431,
+    "n_queries": 48
+   },
+   "16": {
+    "mean_auc": 0.5431,
+    "n_queries": 48
+   }
+  }
+ }
+}

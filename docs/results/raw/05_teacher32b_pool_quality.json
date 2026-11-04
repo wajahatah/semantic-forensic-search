@@ -1,0 +1,30 @@
+{
+ "reranker-2B/A": {
+  "teacher_id": "c2f379c0c13f",
+  "pairs": 24426,
+  "auc": 0.6127,
+  "soft_pos": 0.458,
+  "soft_neg": 0.41
+ },
+ "reranker-2B/B": {
+  "teacher_id": "c2f379c0c13f",
+  "pairs": 25108,
+  "auc": 0.6146,
+  "soft_pos": 0.461,
+  "soft_neg": 0.412
+ },
+ "instruct-32B/A": {
+  "teacher_id": "4828c1b8a155",
+  "pairs": 24426,
+  "auc": 0.6857,
+  "soft_pos": 0.488,
+  "soft_neg": 0.282
+ },
+ "instruct-32B/B": {
+  "teacher_id": "4828c1b8a155",
+  "pairs": 25108,
+  "auc": 0.6954,
+  "soft_pos": 0.486,
+  "soft_neg": 0.269
+ }
+}
