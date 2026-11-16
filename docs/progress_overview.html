@@ -54,14 +54,14 @@
 
 <h1>Semantic Forensic Search — where we are</h1>
 <p class="sub">Search surveillance clips by typing a sentence ("a person opens a car door"), while keeping the
-expensive AI calls to a minimum. Dataset: MEVA. Updated 4 Nov 2026, 15:45.</p>
+expensive AI calls to a minimum. Dataset: MEVA. Updated 5 Nov 2026, 05:15.</p>
 
 <div class="card now">
   <strong>Right now</strong>
   <ul>
-    <li><strong>All planned AI-model experiments are finished.</strong> The 32B chain ended at 15:30 and the final numbers are written up (Result 05).</li>
-    <li>The office GPU is <strong>still held for us</strong> until you say stop. My recommendation is to release it, because the 32B is no better than the 8B (step 10).</li>
-    <li>Next big piece: the <strong>search demo</strong> (needs its own plan).</li>
+    <li><strong>All experiments are finished.</strong> Training the text side as well (step 11) was tested with two seeds and is not adopted. The image-only model is final.</li>
+    <li><strong>The search demo on MEVA is built</strong> (step 12). Its plan waits for your review; changes are cheap. It will be shown as a <strong>recorded video</strong>, not live.</li>
+    <li>The office GPU was <strong>released</strong> at 05:10 (nothing of ours runs on the server now). The video can be recorded on the laptop alone.</li>
   </ul>
 </div>
 
@@ -148,13 +148,31 @@ expensive AI calls to a minimum. Dataset: MEVA. Updated 4 Nov 2026, 15:45.</p>
     The small student stays the most useful step for its cost.</div>
 </div></div>
 
+<div class="card step"><div class="num">11</div><div>
+  <h3>Train the text side too (image + text LoRA) <span class="date">· 4–5 Nov · office server · Result 06</span></h3>
+  <div class="row"><span class="lbl">Found</span>Two seeds each, validation score:
+    <span class="good">unseen cameras (B) 0.378 → 0.425</span>, a gain in both seeds;
+    <span class="bad">seen cameras (A) 0.428 → 0.409</span>, worse in both seeds.</div>
+  <div class="row"><span class="lbl">Check</span>Does the trained text side still understand general wording ("a man in a blue jacket")?
+    <span class="bad">No:</span> how sentences relate changes too much (score 0.77–0.83, bar 0.90).</div>
+  <div class="row"><span class="lbl">Decided</span>Not adopted (the rule set before the runs). The image-only model stays final. The B gain is reported as a finding.</div>
+</div></div>
+
+<div class="card step"><div class="num">12</div><div>
+  <h3>Search demo on MEVA <span class="date">· 5 Nov · guide: docs/demo.md</span></h3>
+  <div class="row"><span class="lbl">Built</span>Type a sentence and get matching clips from the 3,726 test clips as short animations, with the time and AI calls each search cost.
+    Three levels: Fast, Standard (+ student) and Verified (+ the 2B video model checks the top 10). Also filters (site / camera / day / hour), a comparison with the untrained baseline, and an answer-key toggle.</div>
+  <div class="row"><span class="lbl">Checked</span>For the test sentences it gives exactly the evaluated "correct clip first / in top 10" on all 1,206 test searches.</div>
+  <div class="row"><span class="lbl">Your review</span>Plan <code>docs/planning/spec-search-demo.md</code>, §7 (5 choices, defaults built).</div>
+</div></div>
+
 <details class="card">
   <summary>Behind the scenes (setup work)</summary>
   <ul>
     <li>Office server: our own Python environment, the crop store copied over, all model files checked.</li>
     <li>GPU kept for us the whole time (the team's Ollama runs slower meanwhile; the team agreed).</li>
     <li>Access from home through Tailscale (only our devices; to be removed at the end).</li>
-    <li>Code: 152 automatic tests pass. Every decision is logged with its reason in <code>docs/EXPERIMENT_LOG.md</code>.</li>
+    <li>Code: 176 automatic tests pass (plus 3 long real-data tests). Every decision is logged with its reason in <code>docs/EXPERIMENT_LOG.md</code>.</li>
   </ul>
 </details>
 
@@ -162,12 +180,11 @@ expensive AI calls to a minimum. Dataset: MEVA. Updated 4 Nov 2026, 15:45.</p>
 
 <table class="card" style="display:table">
   <tr><th>#</th><th>Work</th><th>Who / size</th></tr>
-  <tr><td>1</td><td>Your call: stop the AI-model experiments and release the office GPU (recommended), or test something else first</td><td>You, short</td></tr>
-  <tr><td>2</td><td>Your open decisions: accept the server set-up check; rewrite captions for 2 activities; optionally retrain the student on "vehicle turns"; delete Qwen2.5-VL 3B/7B</td><td>You, short</td></tr>
-  <tr><td>3</td><td><strong>Search demo</strong> from the proposal (alerts in, typed question out, results shown)</td><td>Biggest remaining piece; needs its own spec</td></tr>
-  <tr><td>4</td><td>Final report for the instructor (results, recall-vs-cost curve, what worked and what did not)</td><td>After 1 and 3; needs its own plan</td></tr>
-  <tr><td>5</td><td>Save the work in git: 9 commits waiting to be pushed, plus all work since 31 Oct uncommitted</td><td>Your approval for each commit</td></tr>
-  <tr><td>6</td><td>Clean-up at the end: release the server GPU, remove the Tailscale access, delete our files on the server</td><td>Me + you, ~30 min</td></tr>
+  <tr><td>1</td><td>Your open decisions: accept the server set-up check; rewrite captions for 2 activities; optionally retrain the student on "vehicle turns"</td><td>You, short</td></tr>
+  <tr><td>2</td><td><strong>Search demo</strong>: review the plan; polish after your feedback; record the video (walk-through in <code>docs/demo.md</code>)</td><td>You review and record; me ~1 day</td></tr>
+  <tr><td>3</td><td>Final report for the instructor (results, recall-vs-cost curve, what worked and what did not)</td><td>After 2; needs its own plan</td></tr>
+  <tr><td>4</td><td>Save the work in git: everything since 4 Nov (step 11, step 12) is uncommitted</td><td>Your approval for each commit</td></tr>
+  <tr><td>5</td><td>Clean-up at the end: remove the Tailscale access, delete our files on the server (Qwen2.5-VL stays: your nexa-vlm uses it)</td><td>Me + you, ~30 min</td></tr>
 </table>
 
 <details class="card">

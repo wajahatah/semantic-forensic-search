@@ -353,7 +353,364 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
 - **Owner's question answered:** nexa_fight alerts are never trained on; they are embedded with the trained model and searched (proposal lanes B/C, unchanged). Caveats given: new cameras (measured by Protocol B), "fight" is outside MEVA's activities (retention check added to the spec), person boxes must come from the pipeline's detector.
 - **Spec:** `docs/planning/spec-lora-image-text.md` (E8), waiting for approval; adoption rule and retention check fixed in it before any run. Demo spec to follow.
 
+### D-050 · E8 approved and started; retention check dropped; all work committed and pushed (2026-11-04)
+
+- **Owner:** approved E8 (image-only vs image + text LoRA, both protocols, server); retention check not needed (searches will be ordinary visual descriptions such as "a person in a blue jacket in the restaurant", not fights); "complete it asap".
+- **Git (owner: "push all the things, repo is private"; no AI name):** 9 commits by concern (`b7c143c`..`b1724fe`): rerank, teacher core, remote service, queue, cascade runner, specs, Result 04, Result 05, docs. Every commit passes its tests in a clean checkout. Pushed with the 9 earlier commits: `origin/main` = `b1724fe`. Not pushed: `CLAUDE.md`, `manifest_v2_drive/`, data, runs, the backup branch. Snapshot before committing: `../snapshots/before_commits_2026-11-04.tgz`.
+- **Code (E8):** `sfs.train.run --text-lora` (image-only config hashes unchanged, test), `sfs.train.lora` text tower helpers, queue job type `module` (whitelisted entry points run inside the GPU-holding process; `empty_cache` disabled during the job). 158 tests pass.
+- **Server:** `peft 0.21.2` installed (`--no-deps`), SigLIP 2 at `75de2d55…` (sha256 identical), packed file identical; holder restarted with the new code (PID 1343756, 14.5 GB) at 20:19; queue file `05_e8_lora.json`: smoke run, image + text A-middle / B-uniform, image-only A-middle / B-uniform.
+
+### D-051 · E8 result: image + text LoRA fails the adoption rule (validation, 2026-11-04)
+
+- **Runs (server, same GPU, seed 0, 20:20–20:46, all `ok`):** best val mAP — image-only A-middle **0.4359** (epoch 12), B-uniform **0.3691** (epoch 6); image + text A-middle **0.4075** (epoch 8), B-uniform **0.4198** (epoch 24). Server image-only reproduces the laptop runs within 0.001 (A) / 0.007 (B) (laptop 0.4371 / 0.3758). Smoke run epoch 0 = 0.2717, identical to the laptop.
+- **Rule (spec §5, fixed before the runs):** (1) mean gain (−0.0284 + 0.0507) / 2 = **+0.011 ≥ +0.010: pass**; (2) A drops by 0.028 > 0.005: **fail** → **not adopted**; the image-only model stays the final model.
+- **Per activity (validation):** A: 6 better / 6 worse (largest: opens vehicle door −0.24, enters vehicle −0.19, turns left +0.11); B: 12 better / 4 worse (opens facility door +0.29, vehicle stops +0.16, carries heavy object −0.23). Single activities move by up to ±0.3, so single-seed noise is large.
+- **Reading:** text adaptation helps on unseen cameras (B, +0.05) and hurts on seen cameras (A, −0.03). With one seed this may be partly noise. A second seed (~30 min) would show it; that is a new check, not part of the fixed rule → owner's call. No eval number read.
+- **Raw:** `docs/results/raw/06_*`.
+
+### D-052 · E8 second seed started; reading fixed before any seed-1 result (2026-11-04, 23:19)
+
+- **Owner:** "Lets go with option 2, do the experiment and let me know the results. And also logs each and every result."
+- **Code:** `sfs.train.run --seed` (default 0). It sets `TrainConfig.seed` (sampler, augmentation, caption draws) and now also seeds torch before the LoRA adapters are created (their initial values + dropout). Before this, the adapter init came from torch's unseeded process state. Seed-0 config hashes are unchanged (seed was already 0 in the config); `tests/test_train.py` 19 pass.
+- **Runs (server, same GPU, holder restarted 23:18 to load the new code, new PID 1847435, Ollama not loaded at the time):** queue file `runs/queue/06_e8_seed1.json`, four jobs in this order: image-only A-middle, image + text A-middle, image-only B-uniform, image + text B-uniform, all `--seed 1`, outputs `runs/lora_{io,it}_s1/<run>`. Settings otherwise identical to D-051.
+- **Reading fixed now, before any seed-1 number:**
+  1. Per protocol, report each seed's difference (image + text − image-only) and the 2-seed mean.
+  2. **The §5 rule is applied to the 2-seed means:** mean of A and B ≥ +0.010 and neither protocol's 2-seed mean drops by more than 0.005 → recommend adopting image + text.
+  3. A protocol's effect "repeats" if both seeds give the same sign and each is larger than 0.010 in size; otherwise it is called noise.
+  4. If the rule fails but B's gain and A's loss both repeat, the result is protocol-dependent: the owner may choose image + text for the nexa_fight demo (unseen cameras, protocol B). That would be reported as a choice made after seeing the results, not as a pass of the rule.
+  5. Still validation only; no eval number is read for this decision.
+- **Each run's result is appended below as it finishes.**
+- **Run 1/4, image-only A-middle seed 1 (23:19–23:24):** best val mAP **0.4203** (epoch 7 of 12, stopped: no gain for 5 epochs); epoch 0 = 0.2717 (same frozen start). Seed 0 gave 0.4359 → the seed alone moves this run by 0.016.
+- **Run 2/4, image + text A-middle seed 1 (23:24–23:29):** best val mAP **0.4112** (epoch 7 of 12). Difference to image-only seed 1: **−0.0091** (seed 0: −0.0284). A's 2-seed mean difference **−0.0188**; same sign in both seeds but seed 1 is below the 0.010 size bar → by rule 3, A's loss does not count as "repeats".
+- **Run 3/4, image-only B-uniform seed 1 (23:29–23:35):** best val mAP **0.3858** (epoch 14 of 19); frozen start 0.2222. Seed 0 gave 0.3691 → the seed moves this run by 0.017 (laptop seed-0 run: 0.3758).
+- **Run 4/4, image + text B-uniform seed 1 (23:35–23:44):** best val mAP **0.4297** (epoch 18). Difference to image-only seed 1: **+0.0439** (seed 0: +0.0507). Queue file `06_e8_seed1` finished, all four jobs `ok` (271 / 290 / 392 / 525 s).
+
+### D-053 · E8 second-seed result: image + text still not adopted; its gain on unseen cameras repeats (validation, 2026-11-04)
+
+Read with the rule fixed in D-052 (`scripts/e8_report.py --root runs/e8 --seeds 0,1`, raw `docs/results/raw/06_e8_report.json`):
+
+| Protocol | Seed | Image only | Image + text | Difference |
+|---|---|---|---|---|
+| A-middle | 0 | 0.4359 | 0.4075 | −0.0284 |
+| A-middle | 1 | 0.4203 | 0.4112 | −0.0090 |
+| A-middle | mean | 0.4281 | 0.4094 | **−0.0187** |
+| B-uniform | 0 | 0.3691 | 0.4198 | +0.0507 |
+| B-uniform | 1 | 0.3858 | 0.4297 | +0.0439 |
+| B-uniform | mean | 0.3775 | 0.4248 | **+0.0473** |
+
+- **Rule (§5 on the 2-seed means):** mean gain **+0.0143 ≥ +0.010: pass**; A's mean drops by 0.019 > 0.005: **fail → not adopted.** The image-only model stays the final model (Results 03–05 unchanged).
+- **Repeats (rule 3):** **B's gain repeats** (+0.051, +0.044; both > 0.010, about 3× the seed-to-seed spread of a single run, 0.016–0.017). A's loss has the same sign in both seeds but seed 1 (−0.009) is below the 0.010 bar → by the fixed reading it does **not** count as repeated.
+- **Rule 4 (protocol-dependent choice) is therefore not triggered as written:** it needed both effects to repeat. What is established: text adaptation reliably helps unseen cameras; on seen cameras it is probably harmful (mean −0.019, both seeds negative) but not confirmed by the bar.
+- **Per activity (sign agrees in both seeds):** B 14 of 17 agree, 12 better / 2 worse (consistently better: opens facility door +0.29/+0.19, vehicle stops +0.16/+0.12, talks on phone +0.15/+0.09, turns left +0.09/+0.09; consistently worse: carries heavy object −0.23/−0.10, exits through structure −0.04/−0.06). A 9 of 15 agree, 4 better / 5 worse (consistently worse: opens vehicle door −0.24/−0.13, enters vehicle −0.19/−0.11, texts on phone −0.10/−0.17, turns right −0.12/−0.08, stands up). On A, the vehicle-door and phone activities, where the camera views were seen in training, lose most.
+- **Correction to D-051's counts:** "A 6 better / 6 worse, B 12 / 4" ignored changes smaller than 0.01 without saying so; strictly (seed 0) A is 6 / 9 and B 12 / 5.
+- **Seed-to-seed spread of the same set-up:** image-only A 0.4359 / 0.4203, B 0.3691 / 0.3858. Differences under ~0.02 between single runs are within seed noise.
+- **What using image + text anyway would take:** using it for the nexa_fight demo (unseen cameras = protocol B) would be a choice made after seeing these results and must be reported that way. It needs the steps spec §3/§8 left unbuilt because the model was not adopted: an export of the adapted text side's query embeddings, re-embedding with the new image adapter, retraining the student, and `--text-emb` in the eval. Estimate: ~0.5 day of code + ~1.5 h of runs. The owner decides; no eval number was read.
+- **Tests:** 161 pass (new `tests/test_e8_report.py`).
+
+### D-054 · Demo on MEVA only; text-drift check run; demo built before its spec is approved (2026-11-05)
+
+- **Owner (2026-11-05):** "Leave the nexa fight we will give demo on the meva videos"; on the recommended text-drift check: "nice recommendation, lets try this and do the experiment"; "write the demo spec and start working on it, I'll review the spec later and will let u know if need to change anything". So the owner **explicitly waives the wait for spec approval** for the demo (as for E6, D-032). The spec is still written first, and the build follows it, so changes after the review stay cheap.
+- **Correction recorded:** my earlier reason against image + text for nexa_fight ("a choice after seeing results") was wrong. Choosing on validation is allowed. The real gap was that no test covered appearance / place wordings, which the text-drift check now addresses.
+- **Text-drift check (spec-lora-image-text §6 R2, fixed now, before any measurement, 02:23):**
+  - Sentences: `queries/appearance_sentences.csv`, 40 appearance / carried-object / people / place / vehicle / scene wordings outside the MEVA activity vocabulary, sha256 `62e1703a2fb72420…`. None is closer than 0.80 (character similarity) to a training caption (max 0.793, shared words only).
+  - For each of the four image + text adapters (A-middle and B-uniform, seeds 0 and 1): embed the sentences with the frozen text side and with the adapted text side.
+  - **Primary measure, the pass rule:** Spearman ρ between the two sets of pairwise cosine similarities (780 pairs). This measures whether the adapted text side keeps the *relations* between general wordings. **Pass = ρ ≥ 0.90 for every adapter** (spec §6 R2 bar, unchanged).
+  - **Described, not gated:** mean cosine between each sentence's frozen and adapted embedding; nearest-neighbour agreement; the same measures on the 66 eval phrasings for scale (where the change is known to help on B).
+  - **What it means:** this guards against collapse; it is not an accuracy measure. Pass → image + text may be offered in the demo as a model choice. Fail → the demo uses the frozen text side only.
+  - Runs on the server (adapters, weights and code are there; CPU, the GPU holder untouched).
+
+### D-055 · Text-drift check fails: the adapted text side changes how general wordings relate (2026-11-05, 02:40)
+
+`scripts/text_drift_check.py` (tests `tests/test_text_drift.py`, 5 pass), server CPU, 16 s. Sentence file
+hash on the server matches the frozen one (`62e1703a…`). Raw: `docs/results/raw/06_text_drift.json`.
+
+| Adapter | 40 appearance sentences: ρ | self-cos | NN agree | 66 eval phrasings: ρ | self-cos | NN agree | Pass (ρ ≥ 0.90) |
+|---|---|---|---|---|---|---|---|
+| A-middle seed 0 | 0.813 | 0.938 | 0.60 | 0.628 | 0.906 | 0.82 | no |
+| A-middle seed 1 | 0.825 | 0.943 | 0.62 | 0.658 | 0.915 | 0.77 | no |
+| B-uniform seed 0 | 0.776 | 0.931 | 0.60 | 0.556 | 0.888 | 0.73 | no |
+| B-uniform seed 1 | 0.767 | 0.933 | 0.55 | 0.639 | 0.893 | 0.77 | no |
+
+- **Rule: fail for every adapter → the demo uses the frozen text side** (image-only LoRA model), as fixed in D-054.
+- **Reading:** the adapted text side moves general wordings less than the activity phrasings it was trained towards (ρ 0.77–0.83 vs 0.56–0.66), but enough that for ~40 % of the sentences the closest other sentence changes. The B adapters, the ones that helped on unseen cameras, drift the most. This says the relations change; it does **not** measure whether appearance search gets worse or better (there are no appearance labels in MEVA). The 0.90 bar was set in the spec without a calibration run.
+- E8 is closed: image-only LoRA is the final model for the report and the demo.
+
+### D-056 · Search demo spec written; build started with the defaults (2026-11-05)
+
+- Spec `docs/planning/spec-search-demo.md`. The build follows its defaults until the owner reviews it (D-054 waiver):
+  - corpus = protocol A eval split (3,726 clips);
+  - exact in-memory search + SQLite metadata. ChromaDB, named in the proposal, is not used: it is approximate and would make the demo differ from the evaluated numbers. This is reported as a change;
+  - local 2B Instruct for the Verified level (k VLM calls, γ = 2 and β = 1 from Result 04);
+  - show-labels toggle, off by default;
+  - stored-crop animations, no raw video.
+- **Contract:** for an eval phrasing's own text vector, the demo's Fast / Standard rankings equal the evaluation's score columns exactly (parity test).
+
+### D-057 · Search demo built and checked (2026-11-05, 03:30)
+
+- **Code:** `src/sfs/demo/` (`index`, `search`, `previews`, `app`); `sfs.teacher.frames.CropIndex(names=…)` (optional subset of shards; the default is unchanged). Docs: `docs/demo.md`, README section, spec updated.
+- **Parity, measured (slow test, real data):** the contract of D-056 cannot hold bit-exactly. Scores differ by ≤ 1e-7 (LoRA) and ≤ 5e-6 (fused), because BLAS adds up one query vector in a different order than 66 vectors at once, so near-ties swap places. Over all 66 Q1 and 1,140 Q2 queries × Fast/Standard:
+  - Success@1 and Success@10 are **identical on every query**;
+  - |ΔAP| ≤ 0.0001 (Q1) and ≤ 0.012 (one Q2 window), with a mean ≤ 0.00002.
+
+  The spec was restated to this. `tests/test_demo.py::test_demo_reproduces_the_evaluated_metrics` (slow) passes in 7 min.
+- **Bugs found and fixed while building:**
+  - the exact-hour filter was missing (found by the Q2 parity run);
+  - Gradio would not have passed the result-click event (postponed annotations hid `gr.SelectData`);
+  - the VLM's loading time was counted as search time.
+- **Live check (app at 127.0.0.1:7860, driven through `gradio_client`), "a person opening a car door":**
+
+  | Level | Total time | VLM calls | Labelled matches in the top 10 |
+  |---|---|---|---|
+  | Fast | 0.2 s | 0 | 4 / 10 |
+  | Standard | 0.8 s | 0 | 6 / 10 |
+  | Verified, k = 10 | 3.2–4.3 s | 10 (0.27–0.36 s per call measured) | 6 / 10 |
+
+  - The previews are served as the identical animated GIFs. The bundle takes 263 MB, plus 1.2 GB of previews (~30 min to render once).
+  - The 2B VLM often gives low yes-probabilities even to correct clips (Result 04: 2B adds ≤ +0.03), which is visible in the captions.
+- **Tests:** 177 pass (+3 slow deselected); demo tests 11 + 1 slow.
+
+### D-058 · Demo presented as a recorded video; server GPU released (2026-11-05, 05:10)
+
+- **Owner (2026-11-05):** "No we are not going to give live demo, I'll record the video and present it there.. if there is no experimentation remaining and we don't need the server to record the video we can release it."
+- **Checked before release:** no experiment remains (E1–E8, the 8B/32B runs, the drift check are all logged; D-055 closed E8). The demo runs entirely on the laptop with the local 2B (spec D3 default), so the recording needs no server.
+- **Release:** holder PID 1847435 (`sfs.teacher.queue --watch runs/queue`, up 5 h 52 min) had no queued jobs and 0 % use; `runs/queue/STOP` created at 05:10. The process exited by itself; the GPU went from 14,263 MiB to 61 MiB in use, with no processes on it.
+- **Effect on the demo:** the "network failure during the presentation" argument against the 8B in Verified (spec D3) no longer applies to a recording. The 2B stays the default; the 8B would need the holder restarted (`~/sfs/start_holder.sh`) and is the owner's call. `docs/demo.md` now describes a recording walk-through.
+- Still on the server, owner's call: Qwen2.5-VL 3B/7B (D-040), our env `~/envs/sfs` and data under `~/sfs`, the Tailscale node.
+
+### D-059 · Alerts from your own videos + new dashboard; sign-in dropped; Docker later (2026-11-07)
+
+- **Owner (2026-11-07), after testing the demo:**
+  - **Alerts:** run YOLO on any video (YouTube or another dataset). Each detection is an alert named by its class, with 5 frames before and 5 after; the clip is embedded and found from the search.
+  - **Dashboard:** two tabs, Detect (upload → alerts) and Search (query → alert clips), with a better design. The owner picks the design from options.
+  - **Sign-in:** skipped.
+  - **Docker:** after these two.
+  - **Scope:** only what works with the current models; no new experiments.
+- **Feasibility checked before the spec:**
+  - The crops (`sfs.data.regions`) and the re-ranker inputs (`box_features`: LoRA tight + frozen context embeddings + box motion) can all be computed from YOLO tracks with the existing functions.
+  - `yolov8m.pt` (COCO) is already on the laptop (drink_sprinkle_detection project).
+  - Missing: `ultralytics` and `lap`. Node 24 is installed. Docker Desktop is installed, but its WSL engine is stopped.
+- **Spec:** `docs/planning/spec-video-alerts-dashboard.md`, waiting for approval. Two points where the spec recommends a change to the owner's wording:
+  - **D1:** an alert fires when an object's track is confirmed (≥ 3 frames) and repeats every 5.5 s while the object stays. Otherwise YOLO's per-frame detections give an alert every frame, or one alert per object, which misses later actions.
+  - **D2:** the 5 + 5 frames are taken at 2 fps (5 s clip, the sampling the models were trained on), not as raw frames (0.17 s at 30 fps).
+- **Confidence band:** relative to the MEVA corpus (High above the 99th percentile, Medium above the 95th), labelled as not a probability. Calibrated probabilities would need labelled videos, which are out of scope.
+- **Design options:** three directions (dark console, light analytics, clip-map-first), published as a private design page for the owner to choose from.
+
+### D-060 · Owner answers D1–D6 of the alerts + dashboard spec; build started (2026-11-07)
+
+- **Owner:** "agree with both of your points"; "if person is detected then hold it till he is gone and detected again"; "I want the alert clip should be of 5 sec, not more not less"; "D3 – person, vehicles and one more common object"; "D4 – control room style"; "D5 – okay lets try"; "D6 – okay install it in dlproj".
+- **Built as:**
+  - **D1:** one alert per object, held while it stays; a new alert only after it was gone for 2 s. The repeat interval exists but is off.
+  - **D2:** 11 frames at 2 fps; the window shifts at the video's start or end, so the clip is always 5.0 s (a video shorter than 5 s is flagged).
+  - **D3:** backpack is my pick for the common object; handbag or suitcase are drop-in swaps.
+  - **D4:** design A. **D5:** three.js PCA map, an illustration only.
+- **Installs:**
+  - `ultralytics 8.4.204` + `lap 0.5.14` into `dlproj`. A dry run first showed that torch 2.14.1, numpy 2.5.2 and OpenCV 5.0 stay as they are; confirmed after the install. The package list from before was saved in the scratchpad.
+  - npm: react 18.3.1, react-dom 18.3.1, three 0.170.0, vite 5.4.11, @vitejs/plugin-react 4.3.4 (`web/node_modules`, git-ignored).
+- **YOLO weights:** `yolov8m.pt` (COCO) copied from the owner's drink-spiking project into `data/models/yolo/`, sha256 `5d4a90cdc7a2…`; no download.
+
+### D-061 · First run on real footage: alert flood and slow clips found and fixed (2026-11-07)
+
+- **Test footage:** a local smoke test on the owner's own test clips (`drink_sprinkling_testing/videotest{1,3,6}.mp4`). It used a scratch alert store in the session scratchpad, never the demo store; nothing left the laptop.
+- **Alert flood:** `videotest3` (14 s, crowded, at most 6 people at once) gave **38 alerts** with the draft rule (confirmation after 3 frames). The causes were boxes with confidence 0.26–0.45, and ByteTrack giving an occluded person a new id (42 track ids). Measured offline on the same detections:
+
+  | Rule | Alerts (videotest3) |
+  |---|---|
+  | conf ≥ 0, confirm 3 frames (draft) | 38 |
+  | conf ≥ 0.5, confirm 3 frames | 26 |
+  | conf ≥ 0.5, confirm 15 frames (0.5 s) | 20 |
+  | **+ track stitching** | **6** |
+
+  - With track stitching on all three clips: 20 → 6, 7 → 3 and 4 → 2 alerts, against at most 6, 4 and 2 people at once.
+  - **Adopted:** confirmation = 0.5 s with conf ≥ 0.5, plus stitching. A new track next to a just-lost track of the same class (≤ 2 s) keeps that object's alert.
+  - This is the owner's "hold it till he is gone" rule, made robust to tracker id switches. Spec §4.2 amended.
+- **Slow clips:**
+  - The whole run took 303 s for 14 s of video (436 MB).
+  - Profiled: detection + tracking take 8.9 s; one VP8 WebM per alert takes 4.1 s each, so 38 alerts × 4.1 s ≈ 156 s.
+  - **Changed:** the whole video is written once with every tracked box drawn (`annotated.webm`), and each alert's clip is its 5 s segment of it. The same clip then took **50 s, including ~20 s of model loading, and 61 MB**. Spec §4.5 amended.
+- **Embedding parity (slow test):** stored MEVA tight crops through the alert path give back the evaluated embeddings: cosine **1.00000** (LoRA) / **0.99999** (frozen), over 89 frames of 10 clips.
+- **Back-end bugs found by the API tests and fixed:**
+  - FastAPI could not see the route types. Postponed annotations made the upload and body types forward references; `sfs.web.server` no longer postpones them, and the request models are module-level.
+  - SQLite connections were committed but never closed. They are now a context manager that commits or rolls back and always closes.
+
+### D-062 · Alerts + dashboard built and checked (2026-11-07)
+
+- **Code:**
+  - `src/sfs/alerts/`: detect, rule, clip, embed, ingest, store.
+  - `sfs.demo.search`: collections `meva` / `alerts` / `both`, alert filters, confidence bands, Verified on alert crops.
+  - `src/sfs/web/`: FastAPI server, ingest job runner, 3D clip map.
+  - `web/`: React front end, design A.
+- **The MEVA results stay as they were:**
+  - MEVA is scored in full, and its mean and spread are the reference for the alerts' z-scores.
+  - With alerts in the store, MEVA rankings and scores are bit-identical (tested); the existing parity tests still pass.
+- **Live check** on the laptop (RTX 4060, all models loaded, 5.7 GB):
+
+  | Search | Clips | Time | VLM calls |
+  |---|---|---|---|
+  | Standard over MEVA + 9 alerts | 3,732–3,735 | 0.6–0.8 s | 0 |
+  | Fast | 3,732 | 0.04 s | 0 |
+  | Verified on alerts, k = 5 | 6 | 3.5 s | 5 |
+
+  - **Upload over HTTP:** a 10 s 720p video gave 3 alerts, each a 5.0 s clip, in 22 s including loading YOLO. Thumbnails, the annotated WebM, the detail frames and the 3D map were served.
+  - **Pages:** checked from headless-Chrome screenshots (Search, Detect, 3D map, Compare).
+  - **3D map:** re-framed after the first screenshot (the cloud was off-centre and the points too small).
+- **Honest reading for the demo:**
+  - The owner's test footage (indoor, close-up) ranks "Low" against MEVA's best clips and sits in its own region of the map.
+  - Videos unlike MEVA are a demonstration, not a measured result (stated in `docs/demo.md`).
+- **Tests:** 197 pass (+20: `tests/test_alerts.py`, `tests/test_web.py`, new cases in `tests/test_demo.py`); slow: alert embedding parity passes.
+- **Docs:** `docs/demo.md` rewritten (run, controls, how a video becomes searchable, recording walk-through), README section and layout, spec amended.
+- **Kept:** the Gradio page (`sfs.demo.app`) still works. Removing it is the owner's call.
+
+### D-063 · Docker Compose spec drafted (2026-11-07)
+
+- **Owner:** tested the dashboard ("working fine"); "now lets work on the docker compose file".
+- **Spec:** `docs/planning/spec-docker.md`, **waiting for approval**. One service, one command
+  (`docker compose up` → http://127.0.0.1:8000), same server, same models.
+- **Facts the design rests on (checked, not assumed):**
+  - Docker Desktop 29.1.3 + Compose v2.40.3 installed (WSL2 backend), engine not running; driver 610.62.
+  - The Hugging Face cache keeps SigLIP 2 as two-level Windows symlinks (Xet layout), unreadable
+    through a Linux bind mount → a plain-file copy of the snapshot (1.5 GB, local, no download) is
+    mounted as the container's cache. That also pins the real revision (`75de2d55…`), an open follow-up.
+  - 61 GB free on C: → data and weights (~20 GB) are mounted read-only, never baked into the image.
+  - `torch 2.14.1+cu126` exists on the cu126 index (`pip index versions`, no download).
+- **Pre-fixed parity rule (§5):** 66 phrasings at Fast + Standard (top 50) and 5 at Verified k = 10,
+  container vs laptop: Success@1/@10 identical on every query, scores within 1e-3, order may swap
+  only across gaps < 1e-3. Alerts: same video → same alerts, frames, windows; embeddings cosine ≥ 0.9999.
+- **Decisions for the owner (§7):** D1 build at the office (recommended; ~3–3.5 GB download);
+  D2 alerts in a Docker volume (recommended) or the shared folder; D3 no CPU variant now;
+  D4 test video; D5 purpose = reproducible demo on this laptop, not an image for the instructor.
+- **Files written the same day** (owner chose "both in parallel" with the report, so the recommended
+  defaults were taken: D2 volume, D3 no CPU variant, D5 a reproducible demo on this laptop; D1 the build
+  at the office; D4 still to name): `Dockerfile` (web / runtime / test stages, non-root, offline at run
+  time), `compose.yaml` (GPU, read-only data mounts, `alerts` volume, health check, loopback-only port),
+  `.dockerignore`, `docker/requirements.txt` + `constraints.txt` (the `dlproj` pip freeze as constraints,
+  so Linux resolves to the tested versions) + `requirements-test.txt`, `scripts/prepare_docker_models.py`
+  (SigLIP 2 snapshot → plain files, hash-checked, pins commit `75de2d55…`), `scripts/docker_parity.py`,
+  `docs/docker.md`; `sfs.web.server --host` via a new `build_parser()`.
+- **Checked:** `docker compose config` valid; `tests/test_docker.py` (7 tests: parser, cache copy incl.
+  corruption and symlinks, parity rule) + `tests/test_web.py` pass; full suite: 204 passed, 4 deselected, 11 warnings in 81.92s (0:01:21).
+- **Rule refined before any measurement:** Verified parity gates only the set of clips the VLM checked
+  (bf16 noise 0.37 in the raw logit, Result 04); Fast/Standard keep the 1e-3 score bar.
+- **Not done:** the build itself and every check of spec §5 (office connection; Docker engine not running).
+
+### D-064 · Final report and presentation: plan drafted (2026-11-07)
+
+- **Owner:** "write the report with proper research, literature review, what was missing, what we claimed
+  to do, what we experiment, what we achieve and make the presentation." Answers to four questions:
+  proposal template style, ≤ 10 pages; Word + PDF report, PowerPoint deck; 10 minutes (~12 slides);
+  report and Docker in parallel.
+- **Spec:** `docs/planning/spec-report.md`, **waiting for approval**: outline with a page budget, the
+  claims-vs-delivered table (§4.4, the spine of the report), the verified literature list, figures from the
+  raw result files through `report/numbers.json`, a 12-slide deck with timings, decisions D1–D6.
+- **Research done:** the submitted proposal re-read from its Word source (3 contributions, 3 hypotheses,
+  10 references, a tools list that the work partly departed from); Result files 01–06 and their hypotheses
+  sections; 14 web lookups. **Verified online:** Tran et al. CVPRW 2025 (arXiv 2504.08384); ForeSea
+  (arXiv 2603.22872, Park, Li et al., Qualcomm, March 2026); SigLIP (2303.15343); SigLIP 2 (2502.14786);
+  Qwen3-VL technical report (2511.21631); UCA (Yuan et al., CVPR 2024, 2309.13925); QASIR (2312.00414);
+  ByteTrack (2110.06864); MEVA (2012.00914). **SurveiLens** [4] exists (IEEE Xplore 11400480; Owais,
+  Siddiqui, Alam, Ali; preprint Sept 2025): the proposal cited it without authors; the venue name is
+  still to be read off the IEEE page, which refuses automated reading.
+- **The gap re-checked:** MEVA appears only in TRECVID ActEV (activity detection); no language-retrieval
+  use of it was found, as in D-003.
+- **Claims vs delivered, in one line each:** adaptation **confirmed**; distillation **not as claimed** (the
+  temporal student trained on human labels is the gain, every teacher failed to add); the cost frontier
+  **delivered** with a different shape (2B VLM on all < LoRA alone; 8B/32B +0.06 S@1 at 10 calls);
+  ChromaDB / W&B / Optuna / ONNX / torch.compile **not used**, with reasons; alert ingestion + interface
+  **delivered**; image + text LoRA **measured, not adopted**.
+- **Report written the same day.** Owner: "write the report I'll read and let u know if need to change
+  anything"; "be technical but don't be over complicated"; add the teacher failures (every VLM tested, the one
+  that passed and added little). ChromaDB question answered: installed, never used; exact search was chosen
+  in D-056 and the report says so. The §9 recommendations were taken as assumptions (completed-study
+  framing, negatives in the main text, one-page appendix, author block from the proposal; cover date
+  "November 2026" until the submission date is known).
+- **Built:** `report/Ahmed_Wajahat_DLReport.docx` + `.pdf` — 12 pages: 10 of body including 5 figures,
+  references on p. 11, appendix on p. 12 — by `scripts/report_build.js` (docx-js under `report/build/`,
+  git-ignored) from `report/numbers.json` (`scripts/report_numbers.py`, checked by
+  `tests/test_report_numbers.py` against the Result files) and `scripts/report_figures.py` (pipeline, cost
+  curve, per-activity); dashboard screenshots from the running server (MEVA query; the owner's garage CCTV
+  upload, 22 alerts). PDF exported with Word; every page checked by eye from PyMuPDF renders. Installs:
+  `docx` (npm, `report/build/`), `pymupdf` into `dlproj` (page renders only).
+- **Content:** 20 references (RANKVIDEO and Vote-in-Context left out: authors not verified); §6.4 lists all
+  seven VLMs with G0/G1 and the AUC reading; §6.5 includes the 32B students; §4 states each proposal tool
+  not used, with the reason. The confidence intervals and the 32B student table are quoted from Results
+  03–05 (marked in the builder); everything else comes from the raw files.
+- **Full suite:** 207 passed, 4 deselected, 12 warnings in 45.75s.
+- **Deck built the same day:** `report/Ahmed_Wajahat_DLPresentation.pptx`, 12 slides for 10 minutes with
+  timed speaker notes, by `scripts/deck_build.js` (pptxgenjs under `report/build/`; theme = the dashboard's
+  control-room look, spec §9 D3 default) from `report/numbers.json` and the report figures; two native
+  charts (LoRA bars, the cost curve as a line chart over the call budget), the VLM gate table, the demo
+  screenshot, a claims scorecard. Checked: the skill's validator passes; every slide exported through
+  PowerPoint and inspected (first pass found six layout defects — overflowing cards, a table running into
+  its paragraph, cramped stats, three two-line titles — all fixed in the builder and re-checked). Installs:
+  `pptxgenjs` (npm, `report/build/`), `defusedxml` + `python-pptx` into `dlproj` (the validator only).
+- **Owner's first review (2026-11-07 evening):** the literature review must be prose, as in a paper (who did the
+  work, what they claimed, what they measured, then the citation), not a table. Done in the builder: §3 is now
+  five paragraphs by research line (encoders; corpus moment retrieval and cost; surveillance; adaptation and
+  distillation; backbones, dataset, tools), each work with its method and its reported results, followed by the
+  "what was missing" paragraph; the old Table 2 removed and the later tables renumbered; Table 1's MEVA row
+  now quotes the paper's release figures (144 h annotated at the 2021 release). Figures 3 and 4 slightly
+  smaller so the references still start on page 11. The Word file was open on the owner's machine (lock), so
+  the build went to the scratchpad first (`REPORT_OUT`) and is copied into `report/` once the file is closed.
+- **Next:** the owner reads both; changes come back as edits to the builders, never by hand in the files.
+
+
 ---
+
+### D-065 · Docker image built and checked at the office; two platform differences measured (2026-11-08)
+
+- **Owner:** at the office: "shall I run the docker compose command or anything need to do before?"; later asked
+  for the commands and stopped the native server (PID 50608) themselves once the laptop-side parity recording
+  was in.
+- **Before the build:** Docker Desktop was not running (owner started it); `scripts/prepare_docker_models.py`
+  copied the SigLIP 2 snapshot (6 files, 1.54 GB, every hash ok, commit `75de2d55…`) into `data/hf-cache`; a
+  Linux container sees the RTX 4060 (driver 610.62); all six mounted folders present; C: had 49 GB free
+  (Docker's own store holds 66 GB of images from other projects, 50 GB reclaimable — the owner's to prune).
+- **First build failed** at the pip step: the Dockerfile copied `docker/requirements.txt` alone, and that file
+  (and `requirements-test.txt`) pulls `docker/constraints.txt` in with `-c`. Fixed
+  (`COPY docker/requirements.txt docker/constraints.txt docker/`) and a test added that parses the Dockerfile
+  and the requirement files and fails on exactly that omission. Second build ok: pip step 414 s, `pip check`
+  clean; `sfs-dashboard:0.1` id `77659e1a0b46`, 12.3 GB on disk / 4.17 GB content; base images pinned by
+  digest (node 24.12.0-alpine `c921b97d…`, python 3.12.15-slim-bookworm `6a0e06f5…`).
+- **Test image:** the first run failed only on the new Dockerfile test (the Dockerfile was not in the image) →
+  the test stage copies it in; `pytest -q -rs`: 190 passed, 18 skipped (Qwen / Gemma processor files and raw
+  result files are not in the image; 1 needs a GPU), 4 deselected, 24 s.
+- **Container run:** healthy 116 s after the first `up` (91 s after the restart), 3,726 MEVA clips, cuda, VLM
+  loaded, 0 alerts in the fresh volume `project_alerts`.
+- **§5.2 parity (rule fixed in D-063):** laptop recording 137 searches / 73.8 s (conda server), container
+  95.4 s. Success@1 and Success@10 identical on all 137 queries; 11 top-10 swaps, all across gaps < 1e-3;
+  Verified: the same 5 sets. Fast scores within 5.6e-5. **Standard scores up to 5.42e-3 apart on 36 queries
+  (median 1.06e-3) → the 1e-3 bar fails.** Median seconds Fast 0.068 → 0.090, Standard 0.260 → 0.268,
+  Verified 4.12 → 7.86 (crops read through the Windows file share).
+- **§5.3 alerts:** the owner's garage clip (the only video in the laptop store; D4 option A in effect) →
+  **22 alerts on the laptop, 21 in the container** (same sha256, 3,806 frames, `yolov8m.pt:5d4a90cd`). The 9
+  person alerts and the two opening alerts identical; car alerts start 1–4 frames apart (0.08–0.16 s); one
+  borderline car track (66.72–71.72 s) only on the laptop; one laptop track is two in the container; peak
+  confidences differ by ≤ 0.017.
+- **Cause, measured** (`scripts/docker_platform_diag.py`, recordings in `runs/docker/diag/`; the same versions
+  on both sides — torch 2.14.1+cu126, cuDNN 9.10.2, OpenCV 5.0.0, ultralytics 8.4.204 — on the same GPU):
+  the student's logits with the same input are **bit-identical** (max 0.0); the query embeddings from the
+  float16 text tower differ by max 3.5e-4 per component (cosine ≥ 0.9999996), which the student turns into
+  max 0.054 logits (median 4.5e-4; the clips' logit spread is 2.8) — the whole Standard difference, and the
+  5.6e-5 of Fast; the decoded frames differ on 32–35 % of pixels (mean 0.4, max 7–21 levels) although both
+  report the FFMPEG back-end — the wheels bundle different FFmpeg builds — which moves YOLO's confidences
+  across the thresholded, stateful alert rule.
+- **Determinism controls (same clip ingested a second time on each side):** container run 2 = run 1, 21 alerts
+  identical in class, start, end, confidence and time; laptop run 2 (`sfs.alerts.ingest` into a scratch
+  store, container stopped meanwhile) = run 1, 22 alerts identical in class, time and confidence. The
+  21-vs-22 is between the platforms, not noise within one.
+- **§5.4 persistence:** `down` / `up`: 21 alerts identical before and after. **§5.5:** healthy; the log shows
+  only model loading, no download. **§5.6:** full local suite 210 passed, 4 deselected, 55 s.
+- **Decision for the owner (spec D6; recommendation A):** accept and document — rankings, Verified decisions
+  and person alerts are identical; what differs is the third decimal of Standard scores and borderline vehicle
+  tracks, traced to OS builds of libraries we pin by version but cannot pin by build — or B: the text tower in
+  float32 on both platforms (changes the laptop's numbers; re-opens D-057's demo-vs-evaluation parity) plus one
+  video-decoder build on both (PyAV with a pinned FFmpeg; changes the alert pipeline), about a day and still
+  not guaranteed bit-exact. The rules themselves are not changed after the fact.
+- **Files:** `Dockerfile` (constraints `COPY`, Dockerfile in the test stage, `-rs`), `scripts/docker_platform_diag.py`
+  (new), `tests/test_docker.py` (+3 tests: Dockerfile `COPY` check, diag compare, diag frames; 10 in all),
+  `docs/docker.md` (results table, "why the two platforms differ"), `docs/planning/spec-docker.md` (results,
+  D1/D4 taken, D6), `README.md`, `runs/docker/` (recordings; untracked).
+- **State:** the container is up on 127.0.0.1:8000 with the GPU; the conda way needs `docker compose stop`
+  first (same port, same GPU).
 
 ## Open decisions
 
@@ -370,7 +727,15 @@ Entry format: **Context → Experiment / evidence → Result → Decision → Ba
 | D-033 | After Gemma E4B failed G1: 12B or stop | **Decided (D-034):** stop Gemma, remove it, back to Qwen 8B (E4) |
 | D-043 | 32B passed G1 at both depths: start teacher labels → students → cascade rows; include the 17.6 h eval "VLM on all" row? | **Decided (D-044):** started, short list only |
 | D-048 | 32B rows done; the 32B equals the 8B on eval at ~13× the time. Stop the VLM experiments and release the server GPU (STOP file), or test anything else on it first? | **Decided (D-049):** VLM experiments stop; GPU kept for the image + text LoRA |
-| D-049 | Approve `spec-lora-image-text.md`; retention check R1 (nexa_fight labelled clips, if they exist) or R2; adoption bar | Open — owner |
+| D-049 | Approve `spec-lora-image-text.md`; retention check R1 (nexa_fight labelled clips, if they exist) or R2; adoption bar | **Decided (D-050):** approved; no retention check; bar as written |
+| D-051 | E8 fails the rule (A −0.028, B +0.051): accept, or run a second seed of all four runs? | **Decided (D-052):** second seed; reading fixed before the results |
+| D-053 | Image + text not adopted (A mean −0.019); its B gain repeats (+0.047). Keep image-only everywhere, or use image + text for the nexa_fight demo as a post-hoc choice (~0.5 day + 1.5 h)? | **Decided (D-054, D-055):** nexa_fight demo dropped; drift check failed; image-only everywhere |
+| D-058 | Verified level in the recorded demo: local 2B (default) or the 8B on the server (holder restart needed)? | Open — owner (recommended: 2B; the 8B adds +0.058 S@1 on A but means restarting the server job) |
+| D-059 | Approve `spec-video-alerts-dashboard.md`: alert rule (D1), 2 fps clip (D2), alert classes (D3), design (D4), 3D clip map (D5), installs (D6) | **Decided (D-060):** all answered; built (D-062) |
+| D-062 | Keep or remove the Gradio page (`sfs.demo.app`) now that the dashboard exists; backpack as the common object (or handbag / suitcase) | Open — owner |
+| D-063 | `spec-docker.md`: confirm the defaults taken (D2 volume, D3 no CPU variant, D5 laptop demo), name the test video (D4); build at the office (D1) | **Built 2026-11-08 (D-065):** D1 at the office; D2/D3/D5 defaults kept; D4 = the owner's garage clip already in the store |
+| D-064 | Report written (owner's instruction); owner to read `report/Ahmed_Wajahat_DLReport.pdf` and send changes; submission date for the cover; deck next | Open — owner |
+| D-065 | Docker §5.2 / §5.3 fail their pre-fixed rules for measured platform reasons (float16 text tower on the Linux CUDA libraries; OpenCV wheels' FFmpeg builds decode differently): accept and document (recommended) or make the platforms bit-identical (~1 day)? | Open — owner |
 
 ---
 

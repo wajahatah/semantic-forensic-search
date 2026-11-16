@@ -105,6 +105,18 @@ src/sfs/                      the package (tested locally, run on Colab via the 
   rerank/train.py             student training (GT / GT+KD / KD), validation selection, resume
   eval/cascade.py             top-k re-ranking over cached scores, exact cost counting
   eval/cascade_run.py         eval requests and the recall-vs-cost report (with GT+KD / KD ablations, H5, latency)
+  demo/index.py               demo bundle of the protocol A eval split (vectors, student, SQLite metadata)
+  demo/search.py              search engine: Fast / Standard / Verified over MEVA, your alerts, or both
+  demo/previews.py            MEVA preview animations (disk cache); demo/app.py: the earlier Gradio page
+  alerts/detect.py            YOLO + ByteTrack over a video
+  alerts/rule.py              when a detection becomes an alert (held until the object is gone; track stitching)
+  alerts/clip.py              the alert clip: 5 frames before + 5 after at 2 fps, exactly 5 s
+  alerts/ingest.py            video -> alerts: same crops, embeddings, re-ranker features as MEVA
+  alerts/embed.py             LoRA + frozen SigLIP 2 embeddings of alert crops
+  alerts/store.py             alert store (SQLite + per-video vectors + media), atomic writes
+  web/server.py               dashboard back end (FastAPI): upload jobs, search, clips, 3D map
+  web/clipmap.py              3D clip map (PCA of the LoRA clip embeddings)
+web/                          dashboard front end (React + Vite + three.js); `npm run build` -> web/dist
 queries/phrasings.csv         reviewed natural-language query phrasings (3 per activity) — EVAL ONLY
 queries/train_captions.csv    reviewed training captions (6 per activity), disjoint from the above
 tests/                        pytest suite (`pytest`; real-model tests: `pytest -m slow`)
@@ -189,6 +201,16 @@ already finished, and refuses to resume if any training setting changed. The bes
 is kept in `best/adapter.pt`; `train_log.csv` has one row per epoch (epoch 0 = untrained model).
 Re-embedding resumes per 4,096-crop part. Check before trusting re-embedded vectors:
 `python -m sfs.embed.reembed ... --check-baseline 2000` (adapter off must reproduce the baseline).
+
+**Image + text LoRA (E8, `docs/planning/spec-lora-image-text.md`, Result 06; not adopted).**
+- `--text-lora` adds rank-16 adapters to the text side, and the drawn captions go through it each step.
+- `--seed N` seeds the sampler, augmentation, caption draws and the LoRA initial weights. Seed 0 keeps
+  the old config hash.
+- Seed comparison: `python scripts/e8_report.py --root runs/e8 --seeds 0,1`.
+- Text-drift check of an image + text adapter on wordings outside MEVA:
+  `python scripts/text_drift_check.py --adapters A0=runs/lora_it/A-middle/best/adapter.pt --out drift.json`.
+- On the office server, training jobs run inside the GPU holder as `module` jobs
+  (`sfs.teacher.queue`).
 
 ---
 
@@ -284,6 +306,43 @@ training per epoch, refused if a setting changed). Training code cannot open eva
 
 ---
 
+## Search dashboard: your videos + MEVA
+
+Specs: `docs/planning/spec-video-alerts-dashboard.md` (alerts, dashboard) and
+`docs/planning/spec-search-demo.md` (search engine). Guide and recording walk-through: `docs/demo.md`.
+
+```bash
+python -m sfs.demo.index --protocol A     # once: bundle of the protocol A eval split (data/demo/A)
+cd web && npm install && npm run build    # once: the front end (React + three.js) -> web/dist
+python -m sfs.web.server                  # http://127.0.0.1:8000 (local only)
+python -m sfs.alerts.ingest video.mp4     # optional: the Detect tab's pipeline from the command line
+
+# the same server in Docker (docs/docker.md): data and weights mounted read-only, alerts in a volume
+python scripts/prepare_docker_models.py   # once: SigLIP 2 as plain files for the container (local copy)
+docker compose up                         # builds on the first run (~3.5 GB download, done at the office)
+```
+
+- **Detect tab:** upload a video. YOLO (`yolov8m.pt`, COCO) with ByteTrack detects people, vehicles and
+  backpacks. Each object raises one alert, named by its class, held until the object is gone for 2 s
+  (`sfs.alerts.rule`). Each alert keeps 5 frames before and 5 after at 2 fps: an exactly 5 s clip
+  (`sfs.alerts.clip`). The clip gets the same crops, embeddings and re-ranker features as the MEVA
+  clips (`sfs.alerts.ingest`), which is checked against the evaluated stores (cosine 1.0000,
+  `pytest -m slow tests/test_alerts.py`).
+- **Search tab:** free text over your alerts, the 3,726 MEVA eval clips, or both, at three cost levels:
+  - **Fast:** LoRA.
+  - **Standard:** + student.
+  - **Verified:** + 2B VLM on the top k.
+
+  It also has a confidence band relative to MEVA, MEVA filters, labels, a comparison with frozen
+  SigLIP 2, and a 3D clip map (PCA of the clip embeddings, three.js). MEVA results are unchanged by the
+  alerts; for the evaluation phrasings they reproduce the evaluated system (`pytest -m slow tests/test_demo.py`).
+- The earlier Gradio page (`python -m sfs.demo.app`, MEVA only) still works.
+- **Docker:** `Dockerfile` (front end, runtime and test stages) + `compose.yaml`; `docker build --target test .`
+  runs the unit suite in Linux; `scripts/docker_parity.py` checks the container's search results against
+  the laptop run (spec `docs/planning/spec-docker.md`, how-to `docs/docker.md`).
+
+---
+
 ## Status
 
 Embeddings done (SigLIP 2 + tight crops, `docs/results/01`). Frozen baseline on the eval split
@@ -295,4 +354,10 @@ embeddings + box motion lifts Q2 S@1 0.39 → 0.53 (A) / 0.37 → 0.52 (B) and Q
 the 2B teacher did not help. Follow-ups (`docs/results/05`, draft): the 2B VLM on every Q1 candidate
 reaches only 0.207 / 0.212 mAP at ~10 min per query; one merged "vehicle turns" class is found well
 (LoRA AP 0.57 / 0.62), so the turn direction was the failure; 16 frames do not rescue the 2B VLM.
-Open: a bigger VLM served from the office server (E4).
+Bigger VLMs on the office server: 8B and 32B as a short-list stage (`docs/results/05`). Image + text
+LoRA helps on unseen cameras (+0.047 val mAP over two seeds) but loses on seen ones. It was not
+adopted, and the text-drift check failed (`docs/results/06`). Search dashboard (your videos + MEVA): `docs/demo.md`.
+Docker image built and checked 2026-11-08 (`docs/docker.md`): same rankings as the conda run on every query; Standard scores and borderline vehicle alerts differ slightly between the Windows and Linux library builds (measured, owner's call).
+Final report drafted (`report/Ahmed_Wajahat_DLReport.pdf`, built by `scripts/report_build.js` from
+`report/numbers.json` and `scripts/report_figures.py`; plan in `docs/planning/spec-report.md`); 12-slide deck
+`report/Ahmed_Wajahat_DLPresentation.pptx` built by `scripts/deck_build.js` from the same numbers.
