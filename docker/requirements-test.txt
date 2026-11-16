@@ -1,0 +1,7 @@
+# The `test` stage of the Dockerfile only: the unit suite, the HTTP test client, and the earlier Gradio page
+# (sfs.demo.app) that tests/test_demo.py still imports. None of these is in the runtime image.
+-c constraints.txt
+
+pytest==9.1.1
+httpx==0.28.1
+gradio==6.30.0

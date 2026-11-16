@@ -1,0 +1,44 @@
+# Search dashboard in Docker (docs/planning/spec-docker.md, D-063; how-to: docs/docker.md).
+#
+#   python scripts/prepare_docker_models.py   # once: SigLIP 2 snapshot -> data/hf-cache (local copy, no download)
+#   docker compose up                         # builds on the first run, then http://127.0.0.1:8000
+#   docker compose down                       # stops it; alerts made inside Docker stay in the `alerts` volume
+#
+# The image holds code, the built front end and the Python packages only. Data and model weights are
+# mounted read-only from this folder at the same paths the server uses by default, so no server
+# argument changes except --host (listen inside the container) and --alerts (the volume).
+
+services:
+  dashboard:
+    build:
+      context: .
+      target: runtime
+    image: sfs-dashboard:0.1
+    container_name: sfs-dashboard
+    ports:
+      - "127.0.0.1:8000:8000"           # published on this laptop's loopback only (D-059: no sign-in, local use)
+    volumes:
+      - ./data/demo/A:/app/data/demo/A:ro                                    # MEVA bundle: vectors, metadata, student, previews
+      - ./data/crops_v2:/app/data/crops_v2:ro                                # crop store: Verified level + detail frames
+      - ./data/models/Qwen3-VL-2B-Instruct:/app/data/models/Qwen3-VL-2B-Instruct:ro
+      - ./data/models/yolo:/app/data/models/yolo:ro
+      - ./runs/lora/A-middle/best:/app/runs/lora/A-middle/best:ro            # LoRA adapter (Result 03, selected)
+      - ./data/hf-cache:/hf-cache:ro                                         # SigLIP 2, plain files (spec §4.4)
+      - alerts:/alerts                                                       # your alerts (spec D2: a volume, not the Windows folder)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:                          # the models take about a minute to load before /api/status answers
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/status', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    restart: "no"                         # a demo on this laptop, not a service that must come back by itself
+
+volumes:
+  alerts:

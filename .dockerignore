@@ -1,0 +1,18 @@
+# Build context = code only (docs/planning/spec-docker.md §1). Data, weights and runs are mounted at
+# run time by compose.yaml; nothing large goes into the image.
+.git
+.gitignore
+.pytest_cache
+**/__pycache__
+**/*.pyc
+data
+runs
+manifest_v2_drive
+web/node_modules
+web/dist
+colab
+proposals
+docs
+CLAUDE.md
+CLAUDE.local.md
+*.log
