@@ -1,0 +1,73 @@
+{
+ "rule": "pass = sentences rho >= 0.9 for every adapter",
+ "sentences_sha256": "62e1703a2fb72420c477a15a0565c45769544cddf4b721ef6aa2b50770807953",
+ "n_sentences": 40,
+ "n_phrasings": 66,
+ "model": "google/siglip2-base-patch16-224",
+ "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+ "adapters": {
+  "A0": "runs/lora_it/A-middle/best/adapter.pt",
+  "A1": "runs/lora_it_s1/A-middle/best/adapter.pt",
+  "B0": "runs/lora_it/B-uniform/best/adapter.pt",
+  "B1": "runs/lora_it_s1/B-uniform/best/adapter.pt"
+ },
+ "results": {
+  "A0": {
+   "sentences": {
+    "rho": 0.8129,
+    "self_cos": 0.9384,
+    "nn_agree": 0.6
+   },
+   "phrasings": {
+    "rho": 0.6279,
+    "self_cos": 0.9061,
+    "nn_agree": 0.8182
+   },
+   "pass": false,
+   "val_map": 0.4075243127024815
+  },
+  "A1": {
+   "sentences": {
+    "rho": 0.8254,
+    "self_cos": 0.9432,
+    "nn_agree": 0.625
+   },
+   "phrasings": {
+    "rho": 0.658,
+    "self_cos": 0.9153,
+    "nn_agree": 0.7727
+   },
+   "pass": false,
+   "val_map": 0.41123830369070663
+  },
+  "B0": {
+   "sentences": {
+    "rho": 0.776,
+    "self_cos": 0.9306,
+    "nn_agree": 0.6
+   },
+   "phrasings": {
+    "rho": 0.5564,
+    "self_cos": 0.8878,
+    "nn_agree": 0.7273
+   },
+   "pass": false,
+   "val_map": 0.41980014946595345
+  },
+  "B1": {
+   "sentences": {
+    "rho": 0.7674,
+    "self_cos": 0.9335,
+    "nn_agree": 0.55
+   },
+   "phrasings": {
+    "rho": 0.6392,
+    "self_cos": 0.8927,
+    "nn_agree": 0.7727
+   },
+   "pass": false,
+   "val_map": 0.42972268694947496
+  }
+ },
+ "all_pass": false
+}

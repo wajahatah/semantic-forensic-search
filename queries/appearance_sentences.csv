@@ -1,0 +1,45 @@
+# Text-drift check sentences (D-054, spec-lora-image-text §6 R2): appearance / place / object wordings
+# a demo user may type, OUTSIDE the MEVA activity vocabulary of the training captions.
+# Written 2026-11-05 BEFORE any drift measurement; frozen: do not edit after the check has run.
+# group = what the sentence is mostly about (for the per-group reading only).
+group,sentence
+clothing,a man wearing a blue jacket
+clothing,a woman in a red coat
+clothing,a person in a black hoodie
+clothing,someone wearing a white shirt and dark trousers
+clothing,a man in a yellow safety vest
+clothing,a person wearing a grey sweatshirt and jeans
+clothing,a woman with a green scarf
+clothing,a man wearing a baseball cap
+clothing,a person in shorts and a t-shirt
+clothing,someone dressed in a long brown coat
+carried,a person carrying a backpack
+carried,a woman holding an umbrella
+carried,a man with a laptop bag over his shoulder
+carried,a person pulling a rolling suitcase
+carried,someone holding a cup of coffee
+carried,a man carrying a cardboard box
+people,two people walking side by side
+people,a group of four people standing together
+people,a child walking next to an adult
+people,a person standing alone
+people,a tall man with short hair
+people,an elderly person walking slowly
+place,a person on the sidewalk next to the road
+place,someone standing at the bus stop
+place,a person near the entrance of a building
+place,people in a parking lot
+place,a person walking on the grass
+place,someone standing under a tree
+place,a man near the stairs
+place,a person in front of a glass door
+vehicle,a white car in the parking lot
+vehicle,a red pickup truck
+vehicle,a black SUV driving on the road
+vehicle,a parked silver sedan
+vehicle,a yellow school bus
+vehicle,a person riding a bicycle
+scene,a scene at night with street lights
+scene,a rainy day with wet pavement
+scene,an empty road with no people
+scene,a busy area with many people
