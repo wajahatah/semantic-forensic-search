@@ -26,5 +26,17 @@ pytest
 
 # --- later phases (install now to avoid a second round) ---
 peft                      # LoRA
-chromadb                  # vector store
-gradio                    # demo UI
+chromadb                  # vector store (not used: the demo searches exactly, spec-search-demo D2)
+gradio                    # the earlier demo page (sfs.demo.app)
+
+# --- alerts + dashboard (spec-video-alerts-dashboard) ---
+ultralytics==8.4.204      # YOLO + ByteTrack (AGPL-3.0; fine for a private course project)
+lap==0.5.14               # ByteTrack's assignment solver
+fastapi                   # dashboard back end (tested: 0.156.2)
+uvicorn                   # its server (tested: 0.54.0)
+python-multipart          # video uploads (tested: 0.0.32)
+# front end: Node 24 + `cd web && npm install && npm run build` (versions pinned in web/package.json)
+
+# --- Docker (docs/docker.md) ---
+# docker/requirements.txt pins the server's packages at the tested versions for the image; this file stays
+# the local, unpinned list.

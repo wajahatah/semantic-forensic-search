@@ -28,8 +28,10 @@ class CropIndex:
     image bytes are loaded one shard at a time (shards are per video, so jobs should visit
     instances grouped by clip)."""
 
-    def __init__(self, crops_dir: str, cache_shards: int = 2):
-        self.paths = sorted(glob.glob(os.path.join(crops_dir, "*.npz")))
+    def __init__(self, crops_dir: str, cache_shards: int = 2, names: list[str] | None = None):
+        """`names`: only these shard files of `crops_dir` (the demo's corpus); default every shard."""
+        self.paths = (sorted(os.path.join(crops_dir, n) for n in set(names)) if names is not None
+                      else sorted(glob.glob(os.path.join(crops_dir, "*.npz"))))
         if not self.paths:
             raise FileNotFoundError(f"no crop shards in {crops_dir}")
         self.where: dict[int, tuple[int, dict[str, np.ndarray]]] = {}
