@@ -61,3 +61,7 @@ desktop.ini
 wandb/
 mlruns/
 .env
+
+# Dashboard front end (web/): dependencies and the build output (rebuild with `npm run build`)
+web/node_modules/
+web/dist/
