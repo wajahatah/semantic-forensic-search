@@ -58,6 +58,7 @@ class TrainConfig:
     captions_sha: str = ""
     phrasings_sha: str = ""
     store_id: str = ""
+    text_lora: bool = False            # E8: LoRA on the text tower too (spec-lora-image-text)
 
     def __post_init__(self):
         if self.protocol not in PROTOCOLS:
@@ -66,7 +67,10 @@ class TrainConfig:
             raise ValueError(f"frame_mode must be one of {FRAME_MODES}")
 
     def hash(self) -> str:
-        return hashlib.sha1(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:12]
+        d = asdict(self)
+        if not d["text_lora"]:          # image-only runs keep the hash they had before E8
+            del d["text_lora"]
+        return hashlib.sha1(json.dumps(d, sort_keys=True).encode()).hexdigest()[:12]
 
 
 def file_sha(path: str) -> str:
@@ -171,7 +175,13 @@ class Validator:
         self.labels = np.array([classes.index(a) for a in
                                 val.set_index("instance_id").loc[self.inst, "activity"]])
         self.cap_proto = cap_proto
+        self.texts = texts
         self.cfg = cfg
+
+    def set_text(self, query_emb: np.ndarray, cap_proto: np.ndarray) -> None:
+        """E8: phrasing embeddings (in `self.texts` order) and caption prototypes from the current text tower."""
+        self.Q = np.asarray(query_emb, np.float32)
+        self.cap_proto = np.asarray(cap_proto, np.float32)
 
     def __call__(self, vision, scale, bias, device) -> dict:
         import torch
@@ -205,8 +215,12 @@ def _autocast(device: str):
 # ---------------------------------------------------------------- one run
 def train(cfg: TrainConfig, vision, scale, bias, packed: PackedCrops, manifest, cap_emb: dict,
           phrasings: dict, query_emb: dict, out_dir: str, device: str = "cpu", workers: int = 0,
-          log=print) -> dict:
+          log=print, text=None, cap_tokens: dict | None = None, phr_tokens: dict | None = None) -> dict:
     """Train one protocol / frame-mode run. `vision` must already carry LoRA adapters.
+
+    E8 (cfg.text_lora): `text` is the text tower with LoRA adapters; cap_tokens / phr_tokens map each
+    activity to its tokenised captions / phrasings (same order as cap_emb / phrasings). The captions
+    drawn each step are encoded with gradients, and the validator re-embeds the phrasings each epoch.
 
     cap_emb: activity -> (n_captions, D) L2-normalised training-caption embeddings (frozen text tower)
     query_emb: activity -> (n_phrasings, D) evaluation-phrasing embeddings (validation queries only)
@@ -216,7 +230,7 @@ def train(cfg: TrainConfig, vision, scale, bias, packed: PackedCrops, manifest, 
 
     from sfs.train.loss import label_aware_sigmoid_loss
     from sfs.train.lora import (adapter_hash, adapter_state, image_features, load_adapter_state,
-                                trainable_report)
+                                text_features, trainable_report)
 
     os.makedirs(out_dir, exist_ok=True)
     done_path = os.path.join(out_dir, "done.json")
@@ -238,11 +252,19 @@ def train(cfg: TrainConfig, vision, scale, bias, packed: PackedCrops, manifest, 
     cap_bank = [torch.as_tensor(np.asarray(cap_emb[a], np.float32)) for a in classes]
     proto = np.stack([_unit(np.asarray(cap_emb[a], np.float32).mean(0)) for a in classes])
     validator = Validator(manifest, split_col, packed, phrasings, query_emb, proto, classes, cfg)
+    if cfg.text_lora and (text is None or cap_tokens is None or phr_tokens is None):
+        raise ValueError("text_lora needs the text tower and tokenised captions / phrasings")
+    if not cfg.text_lora and text is not None:
+        raise ValueError("a text tower was given to an image-only run")
 
     vision.to(device)
     scale = torch.nn.Parameter(scale.detach().clone().float().to(device))
     bias = torch.nn.Parameter(bias.detach().clone().float().to(device))
     lora_params = [p for n, p in vision.named_parameters() if p.requires_grad]
+    if text is not None:
+        text.to(device)
+        lora_params += [p for n, p in text.named_parameters() if p.requires_grad]
+        cap_ids = [{k: v.to(device) for k, v in cap_tokens[a].items()} for a in classes]
     opt = torch.optim.AdamW([{"params": lora_params, "weight_decay": cfg.weight_decay},
                              {"params": [scale, bias], "weight_decay": 0.0}], lr=cfg.lr)
     scaler = torch.amp.GradScaler("cuda", enabled=device.startswith("cuda"))
@@ -259,6 +281,8 @@ def train(cfg: TrainConfig, vision, scale, bias, packed: PackedCrops, manifest, 
     ck = load_checkpoint(out_dir, cfg.hash())
     if ck is not None:
         load_adapter_state(vision, ck["adapter"])
+        if text is not None:
+            load_adapter_state(text, ck["text_adapter"])
         with torch.no_grad():
             scale.copy_(ck["scale"]), bias.copy_(ck["bias"])
         opt.load_state_dict(ck["optimizer"])
@@ -275,14 +299,16 @@ def train(cfg: TrainConfig, vision, scale, bias, packed: PackedCrops, manifest, 
             csv.writer(f).writerow(LOG_FIELDS)
         # epoch 0 = the untouched model (LoRA B = 0): the frozen baseline on validation.
         t0 = time.time()
+        if text is not None:
+            validator.set_text(*_text_state(text, cap_tokens, phr_tokens, classes, validator.texts, device))
         v = validator(vision, scale, bias, device)
         after_epoch(cfg, state, v["val_map"], 0)
-        best = _best_payload(vision, scale, bias, 0, v, cfg)
+        best = _best_payload(vision, scale, bias, 0, v, cfg, text)
         _write_best(best_dir, best)
         _append_log(log_path, {"epoch": 0, "steps": 0, "train_loss": "", **_vlog(v), "lr": 0.0,
                                "lr_factor": 1.0, "since_best": 0, "best_epoch": 0,
                                "seconds": round(time.time() - t0, 1)})
-        atomic_save(_checkpoint(cfg, vision, scale, bias, opt, scaler, state, sampler, cap_rng, best),
+        atomic_save(_checkpoint(cfg, vision, scale, bias, opt, scaler, state, sampler, cap_rng, best, text),
                     os.path.join(out_dir, "last.pt"))
         log(f"[{out_dir}] epoch 0 (frozen) val mAP {v['val_map']:.4f}")
 
@@ -299,13 +325,20 @@ def train(cfg: TrainConfig, vision, scale, bias, packed: PackedCrops, manifest, 
             draws = draws[:cfg.max_steps_per_epoch * cfg.batch]
         draws_holder.set(draws)
         vision.train()
+        if text is not None:
+            text.train()
         losses = []
         for x, y in loader:
             lr = lr_at(cfg, state["step"], steps_per_epoch, state["factor"])
             for g in opt.param_groups:
                 g["lr"] = lr
             pick = cap_rng.integers(0, [len(b) for b in cap_bank])
-            caps = torch.stack([b[k] for b, k in zip(cap_bank, pick)]).to(device)
+            if text is None:
+                caps = torch.stack([b[k] for b, k in zip(cap_bank, pick)]).to(device)
+            else:                                   # E8: the drawn captions through the adapted text tower
+                inputs = {k: torch.stack([c[k][j] for c, j in zip(cap_ids, pick)]) for k in cap_ids[0]}
+                with _autocast(device):
+                    caps = text_features(text, inputs).float()
             with _autocast(device):
                 feats = image_features(vision, to_pixels(x).to(device, non_blocking=True))
             loss = label_aware_sigmoid_loss(feats, caps, y.to(device), scale, bias)
@@ -317,16 +350,18 @@ def train(cfg: TrainConfig, vision, scale, bias, packed: PackedCrops, manifest, 
             scaler.update()
             losses.append(float(loss.detach()))
             state["step"] += 1
+        if text is not None:
+            validator.set_text(*_text_state(text, cap_tokens, phr_tokens, classes, validator.texts, device))
         v = validator(vision, scale, bias, device)
         state["epoch"] = epoch
         if after_epoch(cfg, state, v["val_map"], epoch):
-            best = _best_payload(vision, scale, bias, epoch, v, cfg)
+            best = _best_payload(vision, scale, bias, epoch, v, cfg, text)
             _write_best(best_dir, best)
         _append_log(log_path, {"epoch": epoch, "steps": state["step"],
                                "train_loss": round(float(np.mean(losses)), 5), **_vlog(v),
                                "lr": lr, "lr_factor": state["factor"], "since_best": state["since_best"],
                                "best_epoch": state["best_epoch"], "seconds": round(time.time() - t0, 1)})
-        atomic_save(_checkpoint(cfg, vision, scale, bias, opt, scaler, state, sampler, cap_rng, best),
+        atomic_save(_checkpoint(cfg, vision, scale, bias, opt, scaler, state, sampler, cap_rng, best, text),
                     os.path.join(out_dir, "last.pt"))
         log(f"[{out_dir}] epoch {epoch}: loss {np.mean(losses):.4f} val mAP {v['val_map']:.4f} "
             f"(best {state['best_map']:.4f} @ {state['best_epoch']}) lr {lr:.2e} {time.time() - t0:.0f}s"
@@ -337,6 +372,9 @@ def train(cfg: TrainConfig, vision, scale, bias, packed: PackedCrops, manifest, 
             "epochs_run": state["epoch"], "best_epoch": state["best_epoch"],
             "best_val_map": state["best_map"], "frozen_val_map": _frozen_map(log_path),
             "adapter_hash": adapter_hash(best["adapter"]), "trainable": trainable_report(vision)}
+    if text is not None:
+        done["text_adapter_hash"] = adapter_hash(best["text_adapter"])
+        done["text_trainable"] = trainable_report(text)
     with open(done_path + ".tmp", "w", encoding="utf-8") as f:
         json.dump(done, f, indent=1)
     os.replace(done_path + ".tmp", done_path)
@@ -352,19 +390,43 @@ def _vlog(v):
     return {"val_loss": round(v["val_loss"], 5), "val_map": round(v["val_map"], 5)}
 
 
-def _checkpoint(cfg, vision, scale, bias, opt, scaler, state, sampler, cap_rng, best) -> dict:
+def _checkpoint(cfg, vision, scale, bias, opt, scaler, state, sampler, cap_rng, best, text=None) -> dict:
     from sfs.train.lora import adapter_state
-    return {"config": asdict(cfg), "config_hash": cfg.hash(), "adapter": adapter_state(vision),
-            "scale": scale.detach().cpu(), "bias": bias.detach().cpu(), "optimizer": opt.state_dict(),
-            "scaler": scaler.state_dict(), "state": dict(state), "rng": rng_states(sampler, cap_rng),
-            "best": best}
+    ck = {"config": asdict(cfg), "config_hash": cfg.hash(), "adapter": adapter_state(vision),
+          "scale": scale.detach().cpu(), "bias": bias.detach().cpu(), "optimizer": opt.state_dict(),
+          "scaler": scaler.state_dict(), "state": dict(state), "rng": rng_states(sampler, cap_rng),
+          "best": best}
+    if text is not None:
+        ck["text_adapter"] = adapter_state(text)
+    return ck
 
 
-def _best_payload(vision, scale, bias, epoch, v, cfg) -> dict:
+def _best_payload(vision, scale, bias, epoch, v, cfg, text=None) -> dict:
     from sfs.train.lora import adapter_state
-    return {"adapter": adapter_state(vision), "scale": scale.detach().cpu().clone(),
+    best = {"adapter": adapter_state(vision), "scale": scale.detach().cpu().clone(),
             "bias": bias.detach().cpu().clone(), "epoch": epoch, "val_map": v["val_map"],
             "per_activity": v["per_activity"], "config": asdict(cfg)}
+    if text is not None:
+        best["text_adapter"] = adapter_state(text)
+    return best
+
+
+def _text_state(text, cap_tokens: dict, phr_tokens: dict, classes: list, texts: list, device: str):
+    """E8: (phrasing embeddings in validator order, caption prototypes per class) from the current
+    text tower, in fp32 and eval mode like sfs.embed.encoder (so epoch 0 equals the frozen tower)."""
+    import torch
+    from sfs.train.lora import text_features
+    was = text.training
+    text.eval()
+
+    def enc(t):
+        return text_features(text, {k: v.to(device) for k, v in t.items()}).float().cpu().numpy()
+
+    with torch.no_grad():
+        phr = {a: enc(phr_tokens[a]) for a in {a for a, _ in texts}}
+        proto = np.stack([_unit(enc(cap_tokens[a]).mean(0)) for a in classes])
+    text.train(was)
+    return np.stack([phr[a][j] for a, j in texts]), proto
 
 
 def _write_best(best_dir, best) -> None:
@@ -426,7 +488,7 @@ def main(argv=None) -> int:
     from sfs.embed.encoder import ENCODERS, Encoder
     from sfs.eval.queries import load_phrasings
     from sfs.train.captions import disjointness_violations, load_captions
-    from sfs.train.lora import load_vision_tower, trainable_report, wrap_lora
+    from sfs.train.lora import load_text_tower, load_vision_tower, tokenize, trainable_report, wrap_lora
 
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", default="A-uniform,A-middle,B-uniform,B-middle")
@@ -439,6 +501,8 @@ def main(argv=None) -> int:
     ap.add_argument("--max-epochs", type=int, default=100)
     ap.add_argument("--max-steps-per-epoch", type=int, default=0, help="smoke runs only")
     ap.add_argument("--batch", type=int, default=64)
+    ap.add_argument("--text-lora", action="store_true", help="E8: LoRA on the text tower too")
+    ap.add_argument("--seed", type=int, default=0, help="sampler, augmentation, captions and LoRA init")
     a = ap.parse_args(argv)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -465,19 +529,30 @@ def main(argv=None) -> int:
         cfg = TrainConfig(protocol=proto, frame_mode=mode, model_revision=revision,
                           max_epochs=a.max_epochs, max_steps_per_epoch=a.max_steps_per_epoch,
                           batch=a.batch, captions_sha=file_sha(a.captions),
-                          phrasings_sha=file_sha(a.phrasings), store_id=packed.meta["store_id"])
+                          phrasings_sha=file_sha(a.phrasings), store_id=packed.meta["store_id"],
+                          text_lora=a.text_lora, seed=a.seed)
         out_dir = os.path.join(a.out, run)
         if os.path.exists(os.path.join(out_dir, "done.json")):
             train(cfg, None, None, None, packed, m, cap_emb, phr, query_emb, out_dir)
             continue
         vision, scale, bias, rev = load_vision_tower(ENCODERS[cfg.encoder], revision)
+        torch.manual_seed(cfg.seed)                     # LoRA init + dropout (E8 second seed)
         vision = wrap_lora(vision, cfg.lora_rank, cfg.lora_alpha, cfg.lora_dropout)
         rep = trainable_report(vision)
         print(f"[{run}] trainable {rep['trainable']:,} of {rep['total']:,} ({rep['percent']} %), "
               f"{rep['adapted_modules']} adapted projections; config {cfg.hash()}")
+        text = cap_tokens = phr_tokens = None
+        if cfg.text_lora:
+            text, processor = load_text_tower(ENCODERS[cfg.encoder], revision)
+            text = wrap_lora(text, cfg.lora_rank, cfg.lora_alpha, cfg.lora_dropout)
+            cap_tokens = {act: tokenize(processor, caps[act]) for act in sorted(caps)}
+            phr_tokens = {act: tokenize(processor, phr[act]) for act in phr}
+            t_rep = trainable_report(text)
+            print(f"[{run}] text tower: trainable {t_rep['trainable']:,} ({t_rep['adapted_modules']} projections)")
         train(cfg, vision, scale, bias, packed, m, cap_emb, phr, query_emb, out_dir, device, a.workers,
-              log=lambda msg: print(msg, flush=True))     # visible at once when redirected to a file
-        del vision
+              log=lambda msg: print(msg, flush=True),     # visible at once when redirected to a file
+              text=text, cap_tokens=cap_tokens, phr_tokens=phr_tokens)
+        del vision, text
         torch.cuda.empty_cache()
     if all(os.path.exists(os.path.join(a.out, r, "done.json")) for r in runs):
         print(json.dumps(select(a.out, runs), indent=1))

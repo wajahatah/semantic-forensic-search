@@ -1,6 +1,6 @@
 # Spec — Image + text LoRA on the office server (E8)
 
-**Date:** 2026-11-04 · **Status:** draft, **waiting for the owner's approval** · **Log:** D-049
+**Date:** 2026-11-04 · **Status:** **approved 2026-11-04 (D-050)**; complete — not adopted (D-051, second seed D-052/D-053, `docs/results/06-lora-image-text.md`) · **Log:** D-049 – D-053
 **Owner's request:** image + text LoRA (asked for on 2026-10-30 as "a later experiment, separate spec,
 compared against this one", `spec-lora-finetune.md` §8 D2), trained on the office server. If it wins on
 validation, only the student is retrained on it; no new VLM scoring (owner, 2026-11-04).
@@ -144,3 +144,19 @@ for example "two people fighting". The text side is trained on only 192 captions
 1. **Approve this spec** (or change it).
 2. **Retention check:** R1 with nexa_fight labelled clips (please say if they exist), or R2 only.
 3. **Adoption bar** +0.010 mean val mAP, neither protocol −0.005 — OK, or another value?
+
+## 11. Owner's decisions (2026-11-04, D-050)
+
+- **Approved:** "train with siglip2 on both images and images and text on both and then compare and let
+  me know the results.. start training". Both arms, both protocols, on the server.
+- **Retention check (§6) dropped:** "no one is going to ask fight-related queries, they can ask a blue
+  jacket person in the restaurant or something like that". The adoption rule is §5 conditions 1–2.
+- **Pace:** "don't drag it till the end lets complete it asap".
+- **Set-up done:** `peft 0.21.2` added to the server env (`--no-deps`, nothing else changed, `pip check`
+  clean); SigLIP 2 downloaded on the server at `75de2d55…` (weights sha256 identical to the laptop's);
+  packed file built on the server: `tight.bin` byte-identical, row arrays identical. The server has
+  transformers 5.8 (laptop 5.20); both arms train on the server, so the comparison is unaffected. If
+  adopted, re-embedding and eval run on the laptop so all numbers stay comparable with Results 03–05.
+- **Text path check:** with the real model, the new text path equals `Encoder.embed_texts` exactly in
+  fp32 (66 phrasings, difference 0.0). On the GPU the encoder runs in fp16, so the image-only arm's
+  frozen phrasing embeddings differ by ≤ 0.0003 from the fp32 ones used by the image + text arm.

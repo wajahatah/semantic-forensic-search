@@ -305,3 +305,91 @@ def test_epoch_zero_is_the_frozen_model_and_best_is_kept(tmp_path):
     best = torch.load(tmp_path / "r" / "best" / "adapter.pt", weights_only=False)
     assert best["epoch"] == done["best_epoch"] and best["val_map"] == pytest.approx(done["best_val_map"])
     assert done["best_val_map"] == pytest.approx(log.val_map.max(), abs=1e-4)
+
+
+# ---------------------------------------------------------------- E8: image + text LoRA
+def _tiny_text(seed=0):
+    from transformers import SiglipTextConfig, SiglipTextModel
+    torch.manual_seed(seed)
+    cfg = SiglipTextConfig(vocab_size=50, hidden_size=32, intermediate_size=64, num_hidden_layers=2,
+                           num_attention_heads=2, max_position_embeddings=64, projection_size=32)
+    return SiglipTextModel(cfg)
+
+
+def _tokens(n, seed):
+    g = torch.Generator().manual_seed(seed)
+    return {"input_ids": torch.randint(1, 50, (n, 64), generator=g)}
+
+
+def _run_text(tmp_path, out, packed, m, caps, phr, q, crash_after=None):
+    from sfs.train.lora import wrap_lora as wl
+    cfg = TrainConfig("A", "middle", batch=8, max_epochs=3, lora_rank=4, lora_alpha=8,
+                      lora_dropout=0.1, val_min_instances=1, stop_patience=10, lr=5e-3, text_lora=True)
+    v = wl(_tiny_vision(), 4, 8, 0.1)
+    t = wl(_tiny_text(), 4, 8, 0.1)
+    cap_tok = {a: _tokens(len(caps[a]), i) for i, a in enumerate(sorted(caps))}
+    phr_tok = {a: _tokens(len(phr[a]), 10 + i) for i, a in enumerate(sorted(phr))}
+    torch.manual_seed(123)
+
+    def log(msg):
+        if crash_after is not None and f"epoch {crash_after}:" in msg:
+            raise KeyboardInterrupt("simulated power cut")
+
+    return train(cfg, v, torch.tensor(2.0), torch.tensor(-3.0), packed, m, caps, phr, q,
+                 str(tmp_path / out), "cpu", 0, log, text=t, cap_tokens=cap_tok, phr_tokens=phr_tok)
+
+
+def test_image_only_config_hash_is_unchanged_by_the_text_lora_field():
+    import hashlib
+    import json
+    from dataclasses import asdict
+    cfg = TrainConfig("A", "middle")
+    old = {k: v for k, v in asdict(cfg).items() if k != "text_lora"}      # the pre-E8 dataclass
+    assert cfg.hash() == hashlib.sha1(json.dumps(old, sort_keys=True).encode()).hexdigest()[:12]
+    assert TrainConfig("A", "middle", text_lora=True).hash() != cfg.hash()
+
+
+def test_text_lora_needs_its_inputs_and_image_only_refuses_a_text_tower(tmp_path):
+    packed, m, caps, phr, q = _setup(tmp_path)
+    cfg = TrainConfig("A", "middle", batch=8, max_epochs=1, lora_rank=4, lora_alpha=8, val_min_instances=1)
+    with pytest.raises(ValueError, match="image-only"):
+        train(cfg, wrap_lora(_tiny_vision(), 4, 8, 0.1), torch.tensor(2.0), torch.tensor(-3.0), packed, m,
+              caps, phr, q, str(tmp_path / "a"), "cpu", 0, lambda s: None, text=_tiny_text())
+    with pytest.raises(ValueError, match="text_lora needs"):
+        train(TrainConfig("A", "middle", batch=8, max_epochs=1, val_min_instances=1, text_lora=True),
+              wrap_lora(_tiny_vision(), 4, 8, 0.1), torch.tensor(2.0), torch.tensor(-3.0), packed, m,
+              caps, phr, q, str(tmp_path / "b"), "cpu", 0, lambda s: None)
+
+
+def test_text_state_starts_as_the_frozen_text_tower():
+    from sfs.train.lora import text_features
+    from sfs.train.run import _text_state
+    base = _tiny_text()
+    cap_tok = {"rare": _tokens(3, 1), "walk": _tokens(2, 2)}
+    phr_tok = {"rare": _tokens(2, 3), "walk": _tokens(2, 4)}
+    base.eval()
+    with torch.no_grad():
+        want_q = text_features(base, phr_tok["walk"]).numpy()[1]
+        want_p = text_features(base, cap_tok["rare"]).numpy().mean(0)
+    t = wrap_lora(base, 4, 8, 0.0)                                       # LoRA B = 0: identity
+    Q, proto = _text_state(t, cap_tok, phr_tok, ["rare", "walk"], [("rare", 0), ("walk", 1)], "cpu")
+    assert np.allclose(Q[1], want_q, atol=1e-6)
+    assert np.allclose(proto[0], want_p / np.linalg.norm(want_p), atol=1e-6)
+
+
+def test_text_lora_trains_both_towers_and_resumes_exactly(tmp_path):
+    packed, m, caps, phr, q = _setup(tmp_path)
+    straight = _run_text(tmp_path, "straight", packed, m, caps, phr, q)
+    assert straight["text_adapter_hash"] and straight["text_trainable"]["adapted_modules"] == 2 * 4
+    init = adapter_hash(adapter_state(wrap_lora(_tiny_text(), 4, 8, 0.1)))
+    best = torch.load(tmp_path / "straight" / "best" / "adapter.pt", weights_only=False)
+    if straight["best_epoch"] > 0:
+        assert adapter_hash(best["text_adapter"]) != init                # the text adapters learned
+    with pytest.raises(KeyboardInterrupt):
+        _run_text(tmp_path, "crashed", packed, m, caps, phr, q, crash_after=2)
+    resumed = _run_text(tmp_path, "crashed", packed, m, caps, phr, q)
+    a = torch.load(tmp_path / "straight" / "last.pt", weights_only=False)
+    b = torch.load(tmp_path / "crashed" / "last.pt", weights_only=False)
+    assert adapter_hash(a["text_adapter"]) == adapter_hash(b["text_adapter"])
+    assert adapter_hash(a["adapter"]) == adapter_hash(b["adapter"])
+    assert straight["text_adapter_hash"] == resumed["text_adapter_hash"]

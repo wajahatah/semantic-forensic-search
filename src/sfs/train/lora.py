@@ -22,6 +22,30 @@ def load_vision_tower(model_id: str, revision: str | None = None):
     return vision, scale, bias, revision
 
 
+def load_text_tower(model_id: str, revision: str | None = None):
+    """The pretrained text tower (SiglipTextModel incl. its head) and its tokenizer settings (E8)."""
+    from transformers import AutoModel, AutoProcessor
+    rev = None if revision in (None, "unpinned") else revision
+    full = AutoModel.from_pretrained(model_id, revision=rev)
+    text = full.text_model
+    del full
+    return text, AutoProcessor.from_pretrained(model_id, revision=rev)
+
+
+def tokenize(processor, texts: list[str]) -> dict:
+    """Exactly the inputs sfs.embed.encoder.Encoder.embed_texts gives the text tower."""
+    from sfs.embed.encoder import TEXT_MAX_LEN
+    inputs = processor(text=texts, padding="max_length", max_length=TEXT_MAX_LEN, truncation=True,
+                       return_tensors="pt")
+    return {k: v for k, v in inputs.items() if k in ("input_ids", "attention_mask")}
+
+
+def text_features(text, inputs: dict):
+    """L2-normalised text embeddings — what SiglipModel.get_text_features returns, normalised."""
+    out = text(**inputs).pooler_output
+    return out / out.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+
+
 def wrap_lora(vision, rank: int = 16, alpha: int = 32, dropout: float = 0.1):
     """Freeze every base weight and add LoRA adapters to the attention projections."""
     from peft import LoraConfig, get_peft_model
