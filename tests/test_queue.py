@@ -64,3 +64,42 @@ def test_watch_runs_dropped_files_in_order_and_stops_on_stop(tmp_path):
     assert seen == ["a", "b"] and polls == [30.0]
     assert (tmp_path / "01_a.done").exists() and (tmp_path / "02_b.failed").exists()
     assert (tmp_path / "03_bad.failed").exists() and "JSONDecodeError" in (tmp_path / "03_bad.status.json").read_text()
+
+
+def test_module_jobs_are_whitelisted_and_run_without_loading_a_scorer():
+    with pytest.raises(ValueError, match="module must be one of"):
+        validate([{"type": "module", "module": "os", "args": [], "out": "o"}])
+    with pytest.raises(ValueError, match="module must be one of"):
+        validate([{"type": "module", "module": "sfs.train.run", "args": "--runs A", "out": "o"}])
+    ran = []
+    jobs = [{"type": "module", "module": "sfs.train.run", "args": ["--runs", "A-middle"], "out": "runs/x"},
+            {"type": "module", "module": "sfs.rerank.train", "args": [], "out": "runs/y"}]
+
+    def do_module(job):
+        ran.append(job["module"])
+        if job["out"] == "runs/y":
+            raise RuntimeError("sfs.rerank.train returned 2")
+
+    status = run_queue(jobs, lambda j: pytest.fail("no scorer for module jobs"), None, None,
+                       log=lambda m: None, do_module=do_module)
+    assert ran == ["sfs.train.run", "sfs.rerank.train"] and [s["ok"] for s in status] == [True, False]
+
+
+def test_module_job_keeps_the_gpu_cache(monkeypatch):
+    import sys
+    import types
+
+    import torch
+    from sfs.teacher.queue import run_module
+    calls = []
+    fake = types.ModuleType("sfs.train.run")
+    fake.main = lambda args: (torch.cuda.empty_cache(), calls.append(args))[0] or 0
+    monkeypatch.setitem(sys.modules, "sfs.train.run", fake)
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: calls.append("freed"))
+    run_module({"type": "module", "module": "sfs.train.run", "args": ["a"], "out": "o"})
+    assert calls == [["a"]]                                   # empty_cache was a no-op inside the job
+    torch.cuda.empty_cache()
+    assert calls[-1] == "freed"                               # and restored afterwards
+    fake.main = lambda args: 3
+    with pytest.raises(RuntimeError, match="returned 3"):
+        run_module({"type": "module", "module": "sfs.train.run", "args": [], "out": "o"})

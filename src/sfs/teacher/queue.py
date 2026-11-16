@@ -11,6 +11,9 @@ Jobs file (JSON list), relative paths from the working directory:
     "out": "data/teacher/...", "frames": 8, "fp8_at_load": false}]
 Optional per job: "gpu_budget_gb" (CPU/GPU split), "clip_batch" (questions per cached batch), "pin"
 (true / false / omitted = decide from free RAM).
+  {"type": "module", "module": "sfs.train.run", "args": ["--runs", "A-middle", ...], "out": "runs/x"}
+runs one of our own entry points (MODULES) inside this process, so it uses GPU memory the process
+already holds (E8, spec-lora-image-text 4.4). A non-zero return or an exception fails the job.
 A failing job is logged with its error and the queue continues (gates never stop the work).
 
 CLI:
@@ -31,33 +34,60 @@ import sys
 import time
 import traceback
 
-JOB_TYPES = ("g0", "score")
+JOB_TYPES = ("g0", "score", "module")
+MODULES = ("sfs.train.run", "sfs.embed.reembed", "sfs.rerank.features", "sfs.rerank.train")
 
 
 def validate(jobs: list) -> None:
-    need = {"g0": ("model", "kind", "out"), "score": ("model", "kind", "view", "requests", "subset", "out")}
+    need = {"g0": ("model", "kind", "out"), "score": ("model", "kind", "view", "requests", "subset", "out"),
+            "module": ("module", "args", "out")}
     for n, j in enumerate(jobs):
         if j.get("type") not in JOB_TYPES:
             raise ValueError(f"job {n}: type must be one of {JOB_TYPES}")
         missing = [k for k in need[j["type"]] if k not in j]
         if missing:
             raise ValueError(f"job {n} ({j['type']}): missing {missing}")
+        if j["type"] == "module" and (j["module"] not in MODULES or not isinstance(j["args"], list)
+                                      or not all(isinstance(x, str) for x in j["args"])):
+            raise ValueError(f"job {n}: module must be one of {MODULES} with a list of string args")
 
 
-def run_queue(jobs: list, load, do_g0, do_score, reserve=None, log=print) -> list[dict]:
+def run_module(job: dict) -> None:
+    """Run a whitelisted entry point's main(args) in this process. While it runs,
+    torch.cuda.empty_cache is a no-op: the entry points free their cache between runs, which here
+    would hand the held memory back to the driver (and to the team's Ollama)."""
+    import importlib
+
+    import torch
+    keep = torch.cuda.empty_cache
+    torch.cuda.empty_cache = lambda: None
+    try:
+        rc = importlib.import_module(job["module"]).main(list(job["args"]))
+    finally:
+        torch.cuda.empty_cache = keep
+    if rc not in (None, 0):
+        raise RuntimeError(f"{job['module']} returned {rc}")
+
+
+def run_queue(jobs: list, load, do_g0, do_score, reserve=None, log=print, do_module=run_module) -> list[dict]:
     """Run `jobs` in order. `load(job)` builds a scorer; `do_g0(scorer, job)` / `do_score(scorer, job)`
-    run one job; `reserve()` is called once before the first load. Returns one status per job."""
+    run one job; `do_module(job)` runs a module job (no scorer); `reserve()` is called once before the
+    first load. Returns one status per job."""
     validate(jobs)
     if reserve is not None:
         log(f"holding {reserve():.1f} GB of GPU memory for the whole queue")
     status = []
     for n, job in enumerate(jobs):
-        name = f"{n + 1}/{len(jobs)} {job['type']} {os.path.basename(os.path.normpath(job['model']))} -> {job['out']}"
+        what = job["module"] if job["type"] == "module" else os.path.basename(os.path.normpath(job["model"]))
+        name = f"{n + 1}/{len(jobs)} {job['type']} {what} -> {job['out']}"
         log(f"=== {name} start {time.strftime('%F %T')}")
         t0, scorer = time.time(), None
         try:
-            scorer = load(job)
-            (do_g0 if job["type"] == "g0" else do_score)(scorer, job)
+            if job["type"] == "module":
+                do_module(job)
+            else:
+                scorer = load(job)
+                (do_g0 if job["type"] == "g0" else do_score)(scorer, job)
             status.append({"job": name, "ok": True, "seconds": round(time.time() - t0, 1)})
             log(f"=== {name} end {time.strftime('%F %T')} ok")
         except Exception as e:                      # noqa: BLE001 - record, continue with the next job
