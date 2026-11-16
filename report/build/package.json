@@ -1,0 +1,9 @@
+{
+  "name": "sfs-report-build",
+  "private": true,
+  "description": "Builds the final report (.docx) from report/numbers.json with docx-js; see scripts/report_build.js",
+  "dependencies": {
+    "docx": "^9.0.0",
+    "pptxgenjs": "^4.0.1"
+  }
+}

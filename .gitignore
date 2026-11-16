@@ -65,3 +65,11 @@ mlruns/
 # Dashboard front end (web/): dependencies and the build output (rebuild with `npm run build`)
 web/node_modules/
 web/dist/
+
+# report build (docx-js) and generated figures are rebuilt by scripts/report_*.py and report_build.js
+report/build/node_modules/
+
+# local copies of the Drive manifest folder: the embedding files (342 MB each) exceed GitHub's 100 MB
+# file limit and stay on Drive; manifest_v2-1.csv is a byte-identical duplicate of manifest_v2.csv
+manifest_v2_drive/*.npz
+manifest_v2_drive/manifest_v2-1.csv
