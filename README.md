@@ -340,6 +340,13 @@ docker compose up                         # builds on the first run (~3.5 GB dow
 - **Docker:** `Dockerfile` (front end, runtime and test stages) + `compose.yaml`; `docker build --target test .`
   runs the unit suite in Linux; `scripts/docker_parity.py` checks the container's search results against
   the laptop run (spec `docs/planning/spec-docker.md`, how-to `docs/docker.md`).
+- **Server options:** `--bundle` (MEVA index), `--previews`, `--crops`, `--vlm`, `--weights`, `--adapter`,
+  `--alerts`; all default to the laptop paths. Without the MEVA previews or crop store the MEVA collection is
+  hidden and uploaded videos are searched with unchanged scores.
+- **Hand-in folder** (`submission/`, git-ignored, spec `docs/planning/spec-submission.md`):
+  `python scripts/build_submission.py assemble` (code, run scripts, guide from `packaging/submission/`),
+  `move` (models and MEVA data moved in, junctions left at `data/...` and `runs/...`, so this checkout keeps
+  working), `check` (sizes, missing files). The professor's guide is `packaging/submission/README.md`.
 
 ---
 
@@ -360,4 +367,11 @@ adopted, and the text-drift check failed (`docs/results/06`). Search dashboard (
 Docker image built and checked 2026-11-08 (`docs/docker.md`): same rankings as the conda run on every query; Standard scores and borderline vehicle alerts differ slightly between the Windows and Linux library builds (measured, owner's call).
 Final report drafted (`report/Ahmed_Wajahat_DLReport.pdf`, built by `scripts/report_build.js` from
 `report/numbers.json` and `scripts/report_figures.py`; plan in `docs/planning/spec-report.md`); 12-slide deck
-`report/Ahmed_Wajahat_DLPresentation.pptx` built by `scripts/deck_build.js` from the same numbers.
+`report/Ahmed_Wajahat_DLPresentation.pptx` built by `scripts/deck_build.js` from the same numbers; 6-slide deck
+`report/Ahmed_Wajahat_DLPresentation_6.pptx` (the professor's outline, about 7 minutes, with the zero-shot CLIP
+comparison) built by `scripts/deck6_build.js`. Both decks share `scripts/deck_common.js` (theme, layouts, helpers):
+
+    python scripts/report_numbers.py                                    # raw results -> report/numbers.json
+    NODE_PATH=report/build/node_modules node scripts/deck6_build.js     # or deck_build.js (12 slides)
+
+Set `PPTX_SKILL_DIR` to the folder holding `scripts/apply_theme.js` to write the theme colours into the file.

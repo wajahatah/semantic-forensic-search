@@ -712,6 +712,208 @@ hash on the server matches the frozen one (`62e1703a…`). Raw: `docs/results/ra
 - **State:** the container is up on 127.0.0.1:8000 with the GPU; the conda way needs `docker compose stop`
   first (same port, same GPU).
 
+### D-066 · Push of all pending work; submission package, CLIP baseline and 6-slide deck specified (2026-11-17)
+
+- **Push (owner: "push with proper git history without adding on name"):** 8 commits by concern,
+  `b1724fe..5be5f35`, each passing its tests in a clean checkout (140 → 196 passed, data-dependent tests skipped
+  there). `manifest_v2_drive/*.npz` (4 × 342 MB, over GitHub's 100 MB limit) and the byte-identical
+  `manifest_v2-1.csv` ignored, not pushed. **No further pushes until the owner asks.**
+- **Owner's capability question** (own video: two people together, phone, leaving a building): answered from the
+  code and Result 04's per-activity rows — an alert's actors are its object plus the tracked objects next to it, so
+  multi-person scenes are embedded like MEVA's two-person activities (A, student: talks to person S@1 0.98, talks on
+  phone 0.77, exits through structure 0.46); limits: the clip is the 5 s around the object's first appearance
+  (repeat off, D-060), one alert per person, tracker boxes, unmeasured on own footage. "Walking side by side" is not
+  a MEVA activity.
+- **Owner's answers:** ship the complete system in `submission/` (models, scripts, Docker files, guide, report,
+  presentation, test videos, a removable MEVA folder; MEVA data moved, not duplicated); Python on GPU or CPU;
+  Google Drive link; run CLIP now; a 6-slide presentation to the owner's outline; report after the professor's
+  template.
+- **Spec:** `docs/planning/spec-submission.md`, **waiting for approval** (D1–D5: what "MEVA videos" means, code
+  scope, junctions at the old paths, without-MEVA mode, CLIP download place).
+- **CLIP weights** (`openai/clip-vit-base-patch16`, ~600 MB) downloaded at the office on the owner's go, before the
+  spec approval (download only; no code). Main branch has only `pytorch_model.bin` (the safetensors copies are
+  unmerged bot PRs), so the official file was taken at revision `57c21647…` (598,641,023 bytes, sha256 `ec89c7b0…`,
+  equal to Hugging Face's LFS record), loaded with `weights_only` (no code execution); 149.6 M parameters; 3 min.
+
+## D-067 — 2026-11-17 — Zero-shot CLIP ViT-B/16 measured (spec-submission §2)
+
+- **Basis:** owner: "start testing and evaluating clip model while I am reviewing the spec" — an explicit go for
+  spec §2 before the spec's approval (as D-032 / D-054). The submission folder (§1) and the 6-slide deck (§3)
+  still wait for the approval.
+- **Rule fixed before any CLIP number (spec §2):** no decision depends on it; whatever CLIP scores, the system does
+  not change. Eval is therefore read once for a reported comparison.
+- **Code:** `scripts/clip_baseline.py` (`embed` / `val` / `eval`), `tests/test_clip_baseline.py` (7 tests, tiny
+  random CLIP, no download). CLIP uses its own preprocessing (shortest side 224 bicubic, centre crop) and tokenizer;
+  float16 on the laptop GPU; the 73,569 packed tight crops embedded in 6 min (`data/embeddings_clip/`, 76 MB, rows
+  aligned with the SigLIP 2 baseline by (instance, frame)).
+- **Harness check first:** Result 01's validation code had run on Colab and was not in the repo, so it was re-written;
+  re-run on the stored SigLIP / SigLIP 2 embeddings it reproduces Result 01 exactly (0.663 / 0.120, 0.697 / 0.220).
+  The eval job re-ran SigLIP 2 beside CLIP and equals `02_baseline.json` on every stored metric (max diff 0.0).
+- **Validation (Result 01 protocol):** CLIP AUC 0.726, P@10 0.207 (SigLIP 2 0.697 / 0.220). The AUC lead is
+  `person_stands_up` alone (0.625 vs 0.127); over the other 14 types CLIP 0.733, SigLIP 2 0.738.
+- **Eval (Result 02 protocol, tight):** Q1 mAP A 0.142 vs 0.179, B 0.138 vs 0.174; Q2 S@1 A 0.237 vs 0.273,
+  B 0.261 vs 0.275; S@10 A 0.712 vs 0.820, B 0.754 vs 0.849. SigLIP 2 better on 18 of 22 activities in both
+  protocols (largest: talks on phone, enters vehicle).
+- **Result:** SigLIP 2 is the better zero-shot starting point, consistent with D-011. Recorded as addenda to
+  Results 01 and 02; raw `docs/results/raw/01b_clip_val.json`, `02b_clip_eval.json`, `02b_clip_eval_queries.csv.gz`.
+  `report/numbers.json` is extended when the 6-slide deck is built (after the spec approval).
+
+## D-068 — 2026-11-18 — Embedder checked on the owner's own test videos (no code change)
+
+- **Basis:** owner: "test them whether our embedder is working on them or not" — 5 videos from
+  `C:/wajahat/nexa/nexa_fight/cctv_videos` (CCTV People Demo 1–3, the iProx retail-store clip, james-street 4K).
+- **How:** the dashboard's own ingest (`python -m sfs.alerts.ingest --store runs/test_videos/alerts`, a separate store;
+  `data/alerts` untouched), then `runs/test_videos/check.py` through the real `Searcher` (Fast, Standard; MEVA bundle as
+  the score reference). Results `runs/test_videos/check.json`, top-5 contact sheets `runs/test_videos/sheets/`.
+- **Ingest:** 686 alerts (9 / 92 / 28 / 54 / 503); 106–318 s per 720p clip; **james-street (3840×2160, 600 s) took
+  3,017 s** — 4K decoding on the CPU is the bottleneck (GPU ~5 % busy).
+- **Integrity:** every alert 11 frames, LoRA and frozen vectors unit length (±2.4e-4), all finite, mask = frames,
+  93 % of frames with a box.
+- **Meaning (YOLO class as weak ground truth):** vehicle queries rank vehicle alerts above person alerts with AUC 0.96
+  (Fast and Standard); person queries 0.74–0.90. The single bicycle alert (a delivery rider) is **rank 1 of 686 at
+  Fast** for "a person riding a bicycle" and "a bicycle", rank 8 / 11 at Standard.
+- **Visual check of top 5:** cars, people walking through a shop door, pairs of people walking together: right.
+  Phone: 2 of 5 plausible (hand at the ear). Bag: 1–2 of 5. Shop counter: not convincing.
+- **Weak spots found:** (1) a "hub" — a person cut off at the frame edge gives a tight crop of background clutter
+  (retail store, 37.7 s) that ranks near the top for almost every query; (2) umbrella-only crops; (3) the student
+  (Standard), trained on MEVA's 22 activities, demotes objects outside them (bicycle 1 → 8); (4) near-camera people
+  seen from above at the bottom edge of the 4K street camera, unlike MEVA's views. No fix made; each would need a spec.
+
+## D-069 — 2026-11-20 — Submission spec approved with the recommended answers
+
+- **Basis:** after the list of remaining delivery work, which ended "a 'go with the recommendations' covers all
+  four", the owner: "okay good to go".
+- **Decided:** D1 the MEVA folder = search index + crop store + 121 example clips (raw videos stay on Drive);
+  D2 the whole `sfs` package goes in; D3 directory junctions at the old paths; D4 the without-MEVA mode is built now.
+  D5 (CLIP download) was already done at the office (D-067).
+- **Order:** the 6-slide deck first (slide 5 uses the CLIP numbers of D-067), then the submission folder; the owner
+  records the demo video; report changes once the owner has read it or the template arrives; upload from the office.
+- **Not covered by this go:** deleting anything on the office server (needs its own explicit confirmation) and any
+  commit or push.
+
+## D-070 — 2026-11-20 — 6-slide deck built; 8B time per call corrected in the numbers file
+
+- **Basis:** spec-submission §3, approved in D-069.
+- **Deck:** `report/Ahmed_Wajahat_DLPresentation_6.pptx`, built by `scripts/deck6_build.js` to the owner's outline:
+  (1) introduction, (2) project description + MEVA + the two query types, (3) pipeline and the training pipeline,
+  (4) architecture and why (SigLIP 2 + LoRA, temporal student, VLM on the top k; alternatives rejected on evidence),
+  (5) results: zero-shot CLIP → frozen SigLIP 2 → LoRA → + student, Q1 mAP and Q2 Success@1, both protocols,
+  (6) the VLM gates and the cost curve, takeaway, thanks and questions. Speaker notes timed for about 7 minutes
+  (assumed; the talk length was not given). Validator pass; every slide exported through PowerPoint and inspected.
+- **Shared builder code:** theme, layouts, helpers and number accessors moved from `scripts/deck_build.js` to
+  `scripts/deck_common.js`. Check: the 12-slide deck rebuilt with the refactored builder equals the committed file in
+  every part except random section ids and timestamps (112 parts compared); the committed file was put back.
+- **Numbers file:** `scripts/report_numbers.py` gains a `clip` block (D-067; validation AUC / P@10 per encoder,
+  eval Q1 / Q2 of CLIP and frozen SigLIP 2). Every other block unchanged.
+- **Issue found and fixed:** the 8B block of `report/numbers.json` carried the 2B's time per call (0.168 s instead of
+  0.132 s) because `report_numbers.py` read `05_8b_cascade.json`, the file written before the D-048 timing fix, not
+  the corrected `05_8b_cascade_g0fix.json`. Found when the first build of slide 6 said "10×" for the 32B against the
+  8B instead of 13×. The report was not affected (it reads the 8B time from the G0 file); nothing else reads the
+  changed fields (8B time per call, the 8B run's student wall-clock). Fix: read the corrected file; a test pins the
+  8B time to its G0 measurement.
+- **Tests:** `tests/test_report_numbers.py` 4 pass (CLIP block, 8B time).
+
+## D-071 — 2026-11-21 — 6-slide deck: architecture slide redrawn as a flow diagram with a worked example
+
+- **Basis:** owner: the architecture slide had too much text; wanted a flow diagram (SigLIP 2, LoRA with its layers,
+  the 2-layer 2.2 M transformer, inputs and outputs) and below it example frames passed through each block.
+- **Done:** slide 4 of `report/Ahmed_Wajahat_DLPresentation_6.pptx` rebuilt in `scripts/deck6_build.js`. LoRA is drawn
+  inside the SigLIP 2 block, not after it (it adds trained matrices to the encoder's attention layers; the owner's
+  outline put it as a separate step, corrected in the answer).
+- **Example:** `scripts/deck_arch_example.py` → `report/figures/arch_example.json` + frame PNGs. Final rule: query
+  "a person picking up an object" (first frozen phrasing of a motion-defined activity), the top-ranked clip at
+  Standard with that label and an actor box in every frame. Clip 9850 (2 frames): rank 286 (frozen) → 126 (LoRA) →
+  1 (+ student). Two earlier rules were dropped before the slide was built: "opening a car door" gave crops of cars
+  (the box covers the vehicle), and a ≥ 4-frame minimum pushed the choice to a crowded clip at rank 283 (pick-up clips
+  are mostly 2–3 frames). An illustration, not a measurement; the slide says "one example".
+
+## D-072 — 2026-11-21 — 6-slide deck: slide 3 replaced by a three-stage methodology flow
+
+- **Basis:** owner: the pipeline figure was too complex to explain; wanted a simple flow: baseline (CLIP, SigLIP,
+  SigLIP 2 → chosen model), LoRA fine-tuning with validation → results, the student on both protocols → results.
+- **Done:** slide 3 = three stage boxes (baseline / LoRA / temporal student), each with an output box below it; numbers
+  from `report/numbers.json`. CLIP is marked "reference, measured afterwards" (it was measured on 2026-11-17, after
+  SigLIP 2 was chosen on 2026-10-23), so the slide does not claim it took part in the choice.
+- **Builder:** `DECK_OUT` writes the deck to another path (Windows locks a deck open in PowerPoint).
+- **Redrawn the same day** on the owner's feedback ("detailed, but in a simple way"): one row per stage, five short steps each (input → steps → output), every box a bold name + one line.
+
+## D-073 — 2026-11-21 — 6-slide deck: less text, protocols on the methodology slide
+
+- **Basis:** owner: the protocols were missing from the methodology slide; too much text across the deck; make it attractive.
+- **Done:** slide 2 = three numbered points + the MEVA result strip + three big numbers + Q1/Q2 cards; slide 3 gains a
+  Protocol A / B strip; slide 4 keeps the diagram with shorter labels and the example as big ranks (286 / 126 / 1);
+  slide 5 replaces the paragraph with three callouts (0.179 → 0.476; ~80 % of LoRA's gain on unseen cameras;
+  SigLIP 2 > CLIP on every test metric); slide 6 note cut to one line. Validator pass; slides 2–6 inspected in PowerPoint.
+
+## D-074 — 2026-11-21 — 6-slide deck: visual redesign (slides show, the speaker tells)
+
+- **Basis:** owner: make it more visual and professional for a master's presentation; not everything written out.
+- **Done:** cover = title left, the dashboard screenshot right (`report/figures/cover_dash.png`, a crop of
+  `fig4a_search.png`); slide 2 = "you type → you get" picture + three number tiles (≈ 10 min / 0.2 s / dataset);
+  slide 4 = inputs and outputs written on the arrows, larger example frames and ranks; slide 6 = the 7-row gate
+  table replaced by a bar chart of what each VLM adds (best of A / B, as the gate rule reads; only the 32B passes
+  +0.02). Slides 3 and 5 unchanged. Detail moved to the speaker notes. Validator pass; all slides inspected.
+
+## D-075 — 2026-11-21 — Deck: owner's hand edits kept; thanks moved to a 7th slide
+
+- **Basis:** owner edited the deck in PowerPoint (cover: pill removed, author lines shortened; slide 2: third tile
+  removed, two tiles centred) and asked for "thank you / any questions" on a 7th slide.
+- **Done:** edited the owner's file directly with python-pptx (a rebuild would discard the hand edits): the thanks
+  line removed from slide 6, takeaway re-centred, new slide 7 "Thank you / Any questions?" on the TITLE layout, added
+  to the last section. Validator pass; opened and inspected in PowerPoint. Backup of the owner's 6-slide file in
+  `report/backup/`.
+- **Consequence:** `report/Ahmed_Wajahat_DLPresentation_6_new.pptx` is now hand-edited; `scripts/deck6_build.js`
+  no longer reproduces it exactly (the cover screenshot swap of the same day is in the builder; the owner's edits
+  and slide 7 are not). Port them into the builder before any rebuild.
+
+## D-076 — 2026-11-21 — Deck slide 5: borders around the bars
+
+- **Basis:** owner asked for borders between the columns of the two slide-5 charts, and nothing else changed.
+- **Done:** a 1.5 pt outline in the slide background colour on both series of `chart1.xml` and `chart2.xml`, written
+  straight into the hand-edited deck (no rebuild). Validator pass; slide exported and inspected. Backup:
+  `report/backup/DLPresentation_6_new_before_bar_borders.pptx`. Not in `scripts/deck6_build.js` (see D-075).
+
+## D-077 — 2026-11-23 — Submission folder built (spec-submission §1, approved D-069)
+
+- **Basis:** owner: "where is the submission folder?" — approved 2026-11-20, not yet started.
+- **Code (§1.3, §1.5):** `sfs.web.server` gains `--vlm` and `--previews` (defaults unchanged) and a without-MEVA
+  mode: when the previews or the crop store are missing the MEVA collection is hidden (status lists `alerts`
+  only, MEVA searches → 409, clip/frame/map requests → 404). Deviation from §1.5: no `meva_stats.json`; the
+  0.26 GB MEVA index stays in `models/index` (it holds the temporal transformer anyway), and the 'without MEVA'
+  part is the 15 GB of media. Front end offers only the collections the server lists. `.gitignore`
+  `/submission/`, `.dockerignore` `submission`. Tests: 3 new web tests (scores bit-identical with and
+  without MEVA), `tests/test_submission.py` (6).
+- **Builder:** `scripts/build_submission.py assemble | move | check`, templates in `packaging/submission/`
+  (guide `README.md`, `run.bat`, `run.sh`, `requirements.txt`, hand-in `Dockerfile` + `compose.yaml`);
+  `requirements-cpu.txt` derived from the tested pins (torch `+cpu`). Layout differs from §1.2 in one point:
+  the MEVA index is `models/index` and its previews `meva/previews`.
+- **Moved, not copied (D3):** 7 folders renamed into `submission/` with junctions left at the old paths, the
+  4 index files moved with hard links left; file counts identical before and after (e.g. crops 253, previews
+  3,726). Size: models 5.71 GB, meva 16.02 GB (crops 13.96, previews 1.19, example videos 0.87), total 21.74 GB.
+- **Checks:** laptop server through the junctions vs `runs/docker/laptop.json`: 137 queries, max score diff
+  0.0, 0 swaps, the 5 Verified sets identical (`runs/docker/laptop_after_move.json`). Hand-in `run.bat`:
+  starts, MEVA search + previews + front end; garage clip (2.5 min, 480p) uploaded → 22 alerts in 623 s,
+  the laptop's count; without MEVA: same 22 alerts, Fast and Standard scores and bands identical on 4
+  queries. CPU only (GPU hidden): start ≈ 1.5 min, Fast 0.3 s, Standard 2.4 s per search, Verified hidden; a 15 s clip took 495 s to
+  ingest (2 alerts), an alert search 6.0 s. Full suite: 227 passed, 4 deselected.
+- **Also in the folder:** report PDF + Word (7 Nov), the owner's current deck (`report/DLPresentation.pptx`,
+  8 slides), the test clip; `demo_video/` empty until the owner records it. Upload to Drive = owner, at the office.
+
+## D-078 — 2026-11-24 — MEVA data not handed in; local MEVA media deleted (owner)
+
+- **Basis:** the professor asked for the dataset link, not the data ("don't share the data, share the link, I'll
+  download it"); the owner: "delete the MEVA dataset as presentation was also done". The professor's hand-in list:
+  report in the provided template, presentation (PDF), short intro video (MP4 or link), code with the DL model
+  (link if large).
+- **Done:** the three junctions `data/crops_v2`, `data/meva/examples/videos`, `data/demo/A/previews` removed (link
+  only), then `submission/meva` deleted (crops 13.96 GB / 253 files, previews 1.19 GB / 3,726, example videos
+  0.87 GB / 121); 16 GB freed. Copies remain on Drive (crop store) and on the office server (`~/sfs/project/data`).
+  Kept: the MEVA index in `models/index` (embeddings + the temporal transformer), the manifest and annotations.
+- **Code:** `build_submission.py move` no longer moves the MEVA media unless `--with-meva`; `check` no longer
+  expects them; guide rewritten for a hand-in without MEVA (dataset link https://mevadata.org, how to rebuild the
+  media). The laptop dashboard now starts in the without-MEVA mode (D-077). Full suite after the deletion: 227
+  passed, 4 deselected.
+
 ## Open decisions
 
 | ID | Question | Status |
@@ -736,6 +938,7 @@ hash on the server matches the frozen one (`62e1703a…`). Raw: `docs/results/ra
 | D-063 | `spec-docker.md`: confirm the defaults taken (D2 volume, D3 no CPU variant, D5 laptop demo), name the test video (D4); build at the office (D1) | **Built 2026-11-08 (D-065):** D1 at the office; D2/D3/D5 defaults kept; D4 = the owner's garage clip already in the store |
 | D-064 | Report written (owner's instruction); owner to read `report/Ahmed_Wajahat_DLReport.pdf` and send changes; submission date for the cover; deck next | Open — owner |
 | D-065 | Docker §5.2 / §5.3 fail their pre-fixed rules for measured platform reasons (float16 text tower on the Linux CUDA libraries; OpenCV wheels' FFmpeg builds decode differently): accept and document (recommended) or make the platforms bit-identical (~1 day)? | Open — owner |
+| D-066 | Approve `spec-submission.md` (submission folder, CLIP baseline, 6-slide deck; D1–D5) | **Decided (D-069):** approved with the recommended answers; build started |
 
 ---
 
