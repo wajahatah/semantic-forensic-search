@@ -48,3 +48,24 @@ The first embedding run found actor boxes in only 2 of 252 clips: the MEVA repo 
 styles for `geom.yml` and a text regex matched only one. 99.5% of crops silently fell back to the
 full frame. Fixed by parsing with a real YAML parser; the job now refuses to run on a clip whose
 actors have no boxes, and a pipeline version in the encoder id invalidates stale output.
+
+## Addendum 2026-11-17 — zero-shot CLIP ViT-B/16 (D-067)
+
+Added for the presentation's encoder comparison (spec-submission §2). **No decision depends on it**: the
+encoder was chosen on 2026-10-23, and the rule fixed before any CLIP number was that the system does not
+change whatever CLIP scores. `openai/clip-vit-base-patch16` (revision `57c21647…`, same ViT-B/16 at 224 px
+as our SigLIP 2), tight view, its own preprocessing and tokenizer, embedded from the local packed tight crops
+(73,569 crops, store `84b0a9ac41c5`). Code: `scripts/clip_baseline.py` (test `tests/test_clip_baseline.py`).
+The same code first re-ran this result's SigLIP and SigLIP 2 rows from their stored embeddings and
+reproduced them exactly (0.663 / 0.120, 0.697 / 0.220); this protocol had run on Colab, so its code was
+re-written for this check. Raw: `docs/results/raw/01b_clip_val.json`.
+
+| Encoder (tight) | AUC | P@10 |
+|---|---|---|
+| SigLIP | 0.663 | 0.120 |
+| SigLIP 2 | 0.697 | **0.220** |
+| CLIP ViT-B/16 | **0.726** | 0.207 |
+
+CLIP's higher AUC comes almost entirely from `person_stands_up` (CLIP 0.625, SigLIP 2 0.127 — the type
+SigLIP 2 ranks inverted). Without it the two are level (mean AUC over the other 14: CLIP 0.733, SigLIP 2
+0.738). Top-10 precision, the measure closest to search, is lower for CLIP.

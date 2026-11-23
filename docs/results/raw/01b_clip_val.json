@@ -1,0 +1,278 @@
+{
+ "protocol": "Result 01: validation split, tight view, top-3 mean",
+ "prompt": "a surveillance camera photo of a {}",
+ "activities": [
+  "hand_interacts_with_person",
+  "person_carries_heavy_object",
+  "person_closes_vehicle_door",
+  "person_enters_scene_through_structure",
+  "person_enters_vehicle",
+  "person_exits_scene_through_structure",
+  "person_opens_facility_door",
+  "person_opens_vehicle_door",
+  "person_picks_up_object",
+  "person_puts_down_object",
+  "person_stands_up",
+  "person_talks_to_person",
+  "person_texts_on_phone",
+  "vehicle_turns_left",
+  "vehicle_turns_right"
+ ],
+ "encoders": {
+  "siglip": {
+   "n_instances": 739,
+   "n_activities": 15,
+   "auc": 0.6627555413146784,
+   "p10": 0.12000000000000002,
+   "chance_p10": 0.06450157870996842,
+   "per_activity": {
+    "hand_interacts_with_person": {
+     "n_pos": 28,
+     "auc": 0.2981715893108298,
+     "p10": 0.0
+    },
+    "person_carries_heavy_object": {
+     "n_pos": 87,
+     "auc": 0.5131513997602426,
+     "p10": 0.0
+    },
+    "person_closes_vehicle_door": {
+     "n_pos": 9,
+     "auc": 0.9263318112633181,
+     "p10": 0.0
+    },
+    "person_enters_scene_through_structure": {
+     "n_pos": 112,
+     "auc": 0.8844127363864206,
+     "p10": 0.3
+    },
+    "person_enters_vehicle": {
+     "n_pos": 6,
+     "auc": 0.9188267394270123,
+     "p10": 0.0
+    },
+    "person_exits_scene_through_structure": {
+     "n_pos": 107,
+     "auc": 0.8262525139003903,
+     "p10": 0.4
+    },
+    "person_opens_facility_door": {
+     "n_pos": 24,
+     "auc": 0.842016317016317,
+     "p10": 0.1
+    },
+    "person_opens_vehicle_door": {
+     "n_pos": 9,
+     "auc": 0.9657534246575342,
+     "p10": 0.1
+    },
+    "person_picks_up_object": {
+     "n_pos": 109,
+     "auc": 0.2526576379787389,
+     "p10": 0.0
+    },
+    "person_puts_down_object": {
+     "n_pos": 94,
+     "auc": 0.33859475507174663,
+     "p10": 0.0
+    },
+    "person_stands_up": {
+     "n_pos": 11,
+     "auc": 0.1846903096903097,
+     "p10": 0.0
+    },
+    "person_talks_to_person": {
+     "n_pos": 81,
+     "auc": 0.6193478179293782,
+     "p10": 0.5
+    },
+    "person_texts_on_phone": {
+     "n_pos": 20,
+     "auc": 0.41091794158553546,
+     "p10": 0.0
+    },
+    "vehicle_turns_left": {
+     "n_pos": 8,
+     "auc": 0.9791381668946648,
+     "p10": 0.1
+    },
+    "vehicle_turns_right": {
+     "n_pos": 10,
+     "auc": 0.9810699588477366,
+     "p10": 0.3
+    }
+   },
+   "encoder_id": "b058feeedfbd"
+  },
+  "siglip2": {
+   "n_instances": 739,
+   "n_activities": 15,
+   "auc": 0.6971635322453006,
+   "p10": 0.22000000000000006,
+   "chance_p10": 0.06450157870996842,
+   "per_activity": {
+    "hand_interacts_with_person": {
+     "n_pos": 28,
+     "auc": 0.37331725939320876,
+     "p10": 0.0
+    },
+    "person_carries_heavy_object": {
+     "n_pos": 87,
+     "auc": 0.4909738382342571,
+     "p10": 0.1
+    },
+    "person_closes_vehicle_door": {
+     "n_pos": 9,
+     "auc": 0.9610350076103501,
+     "p10": 0.4
+    },
+    "person_enters_scene_through_structure": {
+     "n_pos": 112,
+     "auc": 0.8078292321713374,
+     "p10": 0.4
+    },
+    "person_enters_vehicle": {
+     "n_pos": 6,
+     "auc": 0.9963619827194179,
+     "p10": 0.4
+    },
+    "person_exits_scene_through_structure": {
+     "n_pos": 107,
+     "auc": 0.7756343901573406,
+     "p10": 0.2
+    },
+    "person_opens_facility_door": {
+     "n_pos": 24,
+     "auc": 0.9223193473193473,
+     "p10": 0.5
+    },
+    "person_opens_vehicle_door": {
+     "n_pos": 9,
+     "auc": 0.9622526636225266,
+     "p10": 0.2
+    },
+    "person_picks_up_object": {
+     "n_pos": 109,
+     "auc": 0.46221057230231544,
+     "p10": 0.1
+    },
+    "person_puts_down_object": {
+     "n_pos": 94,
+     "auc": 0.47544120072571333,
+     "p10": 0.2
+    },
+    "person_stands_up": {
+     "n_pos": 11,
+     "auc": 0.1274975024975025,
+     "p10": 0.0
+    },
+    "person_talks_to_person": {
+     "n_pos": 81,
+     "auc": 0.6786746219370333,
+     "p10": 0.3
+    },
+    "person_texts_on_phone": {
+     "n_pos": 20,
+     "auc": 0.47058414464534076,
+     "p10": 0.1
+    },
+    "vehicle_turns_left": {
+     "n_pos": 8,
+     "auc": 0.9769151846785226,
+     "p10": 0.2
+    },
+    "vehicle_turns_right": {
+     "n_pos": 10,
+     "auc": 0.9764060356652949,
+     "p10": 0.2
+    }
+   },
+   "encoder_id": "8356d9b38d31"
+  },
+  "clip": {
+   "n_instances": 739,
+   "n_activities": 15,
+   "auc": 0.726306259274182,
+   "p10": 0.20666666666666667,
+   "chance_p10": 0.06450157870996842,
+   "per_activity": {
+    "hand_interacts_with_person": {
+     "n_pos": 28,
+     "auc": 0.32122764717701424,
+     "p10": 0.0
+    },
+    "person_carries_heavy_object": {
+     "n_pos": 87,
+     "auc": 0.478227910584585,
+     "p10": 0.0
+    },
+    "person_closes_vehicle_door": {
+     "n_pos": 9,
+     "auc": 0.9660578386605784,
+     "p10": 0.1
+    },
+    "person_enters_scene_through_structure": {
+     "n_pos": 112,
+     "auc": 0.733495670995671,
+     "p10": 0.4
+    },
+    "person_enters_vehicle": {
+     "n_pos": 6,
+     "auc": 0.9549795361527967,
+     "p10": 0.0
+    },
+    "person_exits_scene_through_structure": {
+     "n_pos": 107,
+     "auc": 0.7755308766118538,
+     "p10": 0.3
+    },
+    "person_opens_facility_door": {
+     "n_pos": 24,
+     "auc": 0.9006993006993007,
+     "p10": 0.3
+    },
+    "person_opens_vehicle_door": {
+     "n_pos": 9,
+     "auc": 0.9634703196347032,
+     "p10": 0.1
+    },
+    "person_picks_up_object": {
+     "n_pos": 109,
+     "auc": 0.45251201397990387,
+     "p10": 0.2
+    },
+    "person_puts_down_object": {
+     "n_pos": 94,
+     "auc": 0.4755401616361537,
+     "p10": 0.0
+    },
+    "person_stands_up": {
+     "n_pos": 11,
+     "auc": 0.6253746253746254,
+     "p10": 0.0
+    },
+    "person_talks_to_person": {
+     "n_pos": 81,
+     "auc": 0.74100341476228,
+     "p10": 0.8
+    },
+    "person_texts_on_phone": {
+     "n_pos": 20,
+     "auc": 0.5603616133518776,
+     "p10": 0.2
+    },
+    "vehicle_turns_left": {
+     "n_pos": 8,
+     "auc": 0.9668262653898769,
+     "p10": 0.3
+    },
+    "vehicle_turns_right": {
+     "n_pos": 10,
+     "auc": 0.9792866941015089,
+     "p10": 0.4
+    }
+   },
+   "encoder_id": "d2dc4ca144ea"
+  }
+ }
+}

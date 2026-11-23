@@ -78,3 +78,25 @@ The low numbers in the last row are partly the cap, not failure. For forensic us
 measure is **Success@K** (at least one correct result in the top K); MRR already reflects the
 first correct hit. Success@K was **not** pre-registered for this run, so it is not reported here;
 it is proposed for the next spec, defined before any further results are seen.
+
+## Addendum 2026-11-17 — zero-shot CLIP ViT-B/16 on the eval split (D-067)
+
+A reported comparison only (spec-submission §2; no decision depends on it, so reading the eval split once
+for it is allowed). CLIP ViT-B/16 (Result 01 addendum for the set-up), tight view, the 66 frozen phrasings,
+the same `sfs.eval.baseline` functions. The SigLIP 2 rows were re-run in the same job from the stored
+embeddings and equal this result's raw file on every stored metric (max difference 0.0). Success@1/@10 are
+shown because later results use them; they were computed for both encoders in the same run.
+Raw: `docs/results/raw/02b_clip_eval.json`, `02b_clip_eval_queries.csv.gz`.
+
+| Protocol · encoder (tight) | Q1 mAP | Q1 P@10 | Q2 S@1 | Q2 S@10 | Q2 MRR |
+|---|---|---|---|---|---|
+| A · SigLIP 2 | **0.179** | **0.259** | **0.273** | **0.820** | **0.447** |
+| A · CLIP ViT-B/16 | 0.142 | 0.189 | 0.237 | 0.712 | 0.391 |
+| B · SigLIP 2 | **0.174** | **0.274** | **0.275** | **0.849** | **0.460** |
+| B · CLIP ViT-B/16 | 0.138 | 0.192 | 0.261 | 0.754 | 0.409 |
+
+SigLIP 2 is ahead on every measure in both protocols and on 18 of the 22 activities (Q1 AP). The
+largest gaps are `person_talks_on_phone` (A 0.365 vs 0.106) and `person_enters_vehicle` (A 0.187 vs
+0.055); CLIP is slightly ahead on `person_texts_on_phone`, `person_talks_to_person` and `vehicle_stops`.
+On validation (Result 01 addendum) the two looked close on AUC; on the natural phrasings and the larger
+eval split, SigLIP 2 is clearly the better zero-shot starting point, consistent with the choice of D-011.
