@@ -1,0 +1,3 @@
+# Python 3.12, NVIDIA GPU (Windows or Linux). The exact package versions the system was built and tested with.
+#   pip install -r requirements.txt
+-r docker/requirements.txt

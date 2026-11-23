@@ -1,0 +1,38 @@
+# Search dashboard in Docker (guide: ../README.md, "Run with Docker"). Needs an NVIDIA GPU and the
+# NVIDIA Container Toolkit (Docker Desktop on Windows: WSL 2 back end with GPU support).
+#
+#   docker compose up        # builds on the first run (about 12 GB image), then http://127.0.0.1:8000
+#   docker compose down      # stops it; alerts made inside Docker stay in the `alerts` volume
+#
+# If the ../meva folder was removed, Docker creates an empty one and the dashboard starts without the
+# MEVA collection (your own videos are searched as usual).
+
+services:
+  dashboard:
+    build:
+      context: .
+    image: sfs-dashboard-handin:0.1
+    container_name: sfs-dashboard-handin
+    ports:
+      - "127.0.0.1:8000:8000"           # this computer only: the dashboard has no sign-in
+    volumes:
+      - ../models:/models:ro            # SigLIP 2, LoRA adapter, detector, VLM, MEVA index + temporal re-ranker
+      - ../meva:/meva:ro                # MEVA previews and crop store (optional)
+      - alerts:/alerts                  # alerts from the videos you upload
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:                        # the models take about a minute to load before /api/status answers
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/status', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    restart: "no"
+
+volumes:
+  alerts:
