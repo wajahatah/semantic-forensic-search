@@ -42,7 +42,10 @@ const url = new URLSearchParams(location.search);
 
 export default function SearchTab({ status, preset }) {
   const [query, setQuery] = useState(url.get("q") ?? status.examples[0] ?? "");
-  const [collection, setCollection] = useState(url.get("collection") ?? (status.alerts ? "both" : "meva"));
+  // without the MEVA media the server offers "alerts" only (status.collections)
+  const offered = COLLECTIONS.filter(([id]) => status.collections.includes(id));
+  const wanted = url.get("collection") ?? (status.alerts ? "both" : "meva");
+  const [collection, setCollection] = useState(status.collections.includes(wanted) ? wanted : status.collections[0]);
   const [level, setLevel] = useState(url.get("level") ?? "standard");
   const [k, setK] = useState(10);
   const [classes, setClasses] = useState([]);
@@ -62,7 +65,7 @@ export default function SearchTab({ status, preset }) {
 
   useEffect(() => {
     if (!preset) return;
-    setCollection(preset.collection ?? "alerts");
+    setCollection(status.collections.includes(preset.collection) ? preset.collection : "alerts");
     setVideos(preset.videos ?? []);
   }, [preset]);
 
@@ -98,7 +101,7 @@ export default function SearchTab({ status, preset }) {
       <aside className="side" aria-label="Search settings">
         <div className="group" role="radiogroup" aria-label="Collection">
           <span className="label">Collection</span>
-          {COLLECTIONS.map(([id, name]) => (
+          {offered.map(([id, name]) => (
             <label className="radio" key={id}>
               <input type="radio" name="collection" checked={collection === id} onChange={() => setCollection(id)} />
               {name}{id === "alerts" && <span className="muted"> · {status.alerts} alerts</span>}

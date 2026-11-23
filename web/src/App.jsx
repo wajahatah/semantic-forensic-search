@@ -43,7 +43,7 @@ export default function App() {
           {status && (
             <>
               <span className="pill"><span className="dot" />{status.gpu ? `models loaded · ${status.gpu.replace("NVIDIA GeForce ", "")}` : "CPU only"}</span>
-              <span className="pill">{status.meva_clips.toLocaleString()} MEVA · {status.alerts} alerts</span>
+              <span className="pill">{status.meva_clips ? `${status.meva_clips.toLocaleString()} MEVA · ` : ""}{status.alerts} alerts</span>
             </>
           )}
         </div>

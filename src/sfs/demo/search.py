@@ -32,6 +32,7 @@ LEVELS = ("fast", "standard", "verified")
 SYSTEMS = ("final", "frozen")
 COLLECTIONS = ("meva", "alerts", "both")
 VLM_SECONDS_PER_CALL = 0.168          # Result 04, G0 uncached 2B Instruct on the laptop
+DEFAULT_VLM = "data/models/Qwen3-VL-2B-Instruct"
 MEAN_TOP_M = 3
 
 
@@ -90,7 +91,7 @@ class Bundle:
 
 class Searcher:
     def __init__(self, bundle: Bundle, crops_dir: str = "data/crops_v2", device: str | None = None,
-                 encoder=None, vlm=None, vlm_path: str = "data/models/Qwen3-VL-2B-Instruct", alerts=None):
+                 encoder=None, vlm=None, vlm_path: str = DEFAULT_VLM, alerts=None):
         import torch
         self.b = bundle
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")

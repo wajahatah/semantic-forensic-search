@@ -6,6 +6,11 @@ Detect tab: POST /api/videos (upload) -> a background job (sfs.alerts.ingest) ->
 GET /api/videos, /api/videos/{id}/alerts, DELETE /api/videos/{id}.
 Search tab: POST /api/search, GET /api/clips/{id}, GET /api/map; media under /media/...
 The front end (web/, React + three.js) is built to web/dist and served at /.
+
+Without the MEVA media (previews or crop store not on disk; spec-submission §1.5) the MEVA collection is
+hidden and only uploaded videos are searched. The index itself (--bundle) is always needed: it holds the
+temporal re-ranker, and alert scores are standardised against the MEVA clips' scores for the same query,
+so they are the same numbers with and without the MEVA media.
 """
 # no `from __future__ import annotations`: FastAPI must see the real types of the route parameters,
 # which are defined inside create_app
@@ -20,7 +25,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from sfs.alerts.rule import DEFAULT_CLASSES
-from sfs.demo.search import COLLECTIONS, LEVELS, VLM_SECONDS_PER_CALL
+from sfs.demo.search import COLLECTIONS, DEFAULT_VLM, LEVELS, VLM_SECONDS_PER_CALL
 from sfs.web.clipmap import ClipMap
 from sfs.web.jobs import JobRunner
 
@@ -80,9 +85,16 @@ class LockedEmbedder:
             return self.e.frozen(crops)
 
 
+def meva_media_present(previews_dir: str, crops_dir: str) -> bool:
+    """MEVA clips can be shown only with both their previews and their crop store on disk."""
+    return os.path.isdir(previews_dir) and os.path.isdir(crops_dir)
+
+
 def create_app(searcher, store, ingest_job, previews_dir: str, static_dir: str | None = None,
-               phrasings: dict[str, list[str]] | None = None, gpu_lock=None):
-    """`ingest_job(job, progress) -> video id` runs in the background worker (sfs.alerts.ingest in main)."""
+               phrasings: dict[str, list[str]] | None = None, gpu_lock=None, meva: bool = True):
+    """`ingest_job(job, progress) -> video id` runs in the background worker (sfs.alerts.ingest in main).
+
+    `meva=False`: the MEVA collection is hidden (its media are not installed); alerts are searched as before."""
     from fastapi import FastAPI, File, Form, HTTPException, UploadFile
     from fastapi.responses import FileResponse, Response
     from fastapi.staticfiles import StaticFiles
@@ -93,6 +105,7 @@ def create_app(searcher, store, ingest_job, previews_dir: str, static_dir: str |
     runner = JobRunner(ingest_job)
     cmap = ClipMap(searcher.b.lora.emb, searcher.b.lora.starts)
     cache: dict = {}
+    collections = COLLECTIONS if meva else ("alerts",)
     os.makedirs(os.path.join(store.root, "uploads"), exist_ok=True)
 
     app = FastAPI(title="Forensic Search", docs_url="/api/docs", openapi_url="/api/openapi.json")
@@ -136,10 +149,10 @@ def create_app(searcher, store, ingest_job, previews_dir: str, static_dir: str |
     def status():
         import torch
         ac = searcher.alert_corpus()
-        return {"meva_clips": int(len(searcher.b.ids)), "alerts": int(len(ac)) if ac is not None else 0,
+        return {"meva_clips": int(len(searcher.b.ids)) if meva else 0, "alerts": int(len(ac)) if ac is not None else 0,
                 "videos": len(store.videos()), "device": searcher.device,
                 "gpu": torch.cuda.get_device_name(0) if searcher.device == "cuda" else None,
-                "vlm": searcher.vlm_available(), "levels": list(LEVELS), "collections": list(COLLECTIONS),
+                "vlm": searcher.vlm_available(), "levels": list(LEVELS), "collections": list(collections),
                 "classes": list(DEFAULT_CLASSES), "examples": [ts[0] for _, ts in sorted(phr.items())] + list(FREE_EXAMPLES),
                 "filters": {"site": sorted(searcher.b.clips.site.unique()), "camera": sorted(searcher.b.clips.camera.unique()),
                             "date": sorted(searcher.b.clips.date.unique()),
@@ -211,6 +224,8 @@ def create_app(searcher, store, ingest_job, previews_dir: str, static_dir: str |
             raise HTTPException(400, "type a description of what you are looking for")
         if body.level not in LEVELS or body.collection not in COLLECTIONS or body.system not in ("final", "frozen"):
             raise HTTPException(400, "unknown level, collection or system")
+        if body.collection not in collections:
+            raise HTTPException(409, "the MEVA collection is not installed here; search your own videos")
         if body.level == "verified" and body.system == "final" and not searcher.vlm_available():
             raise HTTPException(409, "the Verified level needs the VLM on a GPU; it is not available here")
         f = body.filters
@@ -243,6 +258,8 @@ def create_app(searcher, store, ingest_job, previews_dir: str, static_dir: str |
 
     @app.get("/api/clips/{clip_id}")
     def clip(clip_id: int):
+        if clip_id >= 0 and not meva:
+            raise HTTPException(404, "the MEVA collection is not installed here")
         try:
             info = clip_info(clip_id)
         except (KeyError, IndexError):
@@ -262,6 +279,8 @@ def create_app(searcher, store, ingest_job, previews_dir: str, static_dir: str |
         import cv2
         if clip_id < 0:
             raise HTTPException(404, "alert frames are served under /media/alerts")
+        if not meva:
+            raise HTTPException(404, "the MEVA collection is not installed here")
         frames, _, _ = searcher.clip_frames(clip_id, k=16)
         if not 0 <= j < len(frames):
             raise HTTPException(404, "no such frame")
@@ -272,15 +291,16 @@ def create_app(searcher, store, ingest_job, previews_dir: str, static_dir: str |
     def clip_map():
         a_ids, a_pts = alert_points()
         meta = searcher.alert_corpus().meta if len(a_ids) else None
-        return {"meva": {"ids": [int(i) for i in searcher.b.ids], "points": np.round(cmap.meva, 4).tolist(),
-                         "labels": searcher.b.clips.activity.tolist()},
+        m_ids = [int(i) for i in searcher.b.ids] if meva else []
+        return {"meva": {"ids": m_ids, "points": np.round(cmap.meva, 4).tolist() if meva else [],
+                         "labels": searcher.b.clips.activity.tolist() if meva else []},
                 "alerts": {"ids": [int(i) for i in a_ids], "points": np.round(a_pts, 4).tolist(),
                            "labels": meta.cls.tolist() if meta is not None else []}}
 
     # ------------------------------------------------------------------ media + front end
     os.makedirs(os.path.join(store.root, "media"), exist_ok=True)
     app.mount("/media/alerts", StaticFiles(directory=os.path.join(store.root, "media")), name="alerts")
-    if os.path.isdir(previews_dir):
+    if meva and os.path.isdir(previews_dir):
         app.mount("/media/previews", StaticFiles(directory=previews_dir), name="previews")
     if static_dir and os.path.isdir(static_dir):
         index = os.path.join(static_dir, "index.html")
@@ -299,13 +319,15 @@ def build_parser() -> argparse.ArgumentParser:
     from sfs.alerts.detect import DEFAULT_WEIGHTS
     from sfs.alerts.embed import DEFAULT_ADAPTER
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--bundle", default="data/demo/A")
-    ap.add_argument("--crops", default="data/crops_v2")
+    ap.add_argument("--bundle", default="data/demo/A", help="the MEVA index: vectors, metadata, temporal re-ranker")
+    ap.add_argument("--previews", default=None, help="MEVA preview animations (default: <bundle>/previews)")
+    ap.add_argument("--crops", default="data/crops_v2", help="MEVA crop store (Verified level, detail frames)")
     ap.add_argument("--alerts", default="data/alerts")
     ap.add_argument("--weights", default=DEFAULT_WEIGHTS)
     ap.add_argument("--adapter", default=DEFAULT_ADAPTER)
     ap.add_argument("--phrasings", default="queries/phrasings.csv")
     ap.add_argument("--static", default="web/dist")
+    ap.add_argument("--vlm", default=DEFAULT_VLM, help="folder of the Verified level's VLM (Qwen3-VL-2B-Instruct)")
     ap.add_argument("--no-vlm", action="store_true", help="hide the Verified level's VLM")
     ap.add_argument("--host", default="127.0.0.1",
                     help="address to listen on: 127.0.0.1 on the laptop; 0.0.0.0 inside Docker, where Compose "
@@ -323,9 +345,12 @@ def main(argv=None) -> int:
     from sfs.eval.queries import load_phrasings
     a = build_parser().parse_args(argv)
     store = AlertStore(a.alerts)
-    s = Searcher(Bundle(a.bundle), a.crops, alerts=store)
-    if a.no_vlm:
-        s.vlm_path = ""
+    previews = a.previews or os.path.join(a.bundle, "previews")
+    meva = meva_media_present(previews, a.crops)
+    if not meva:
+        print(f"MEVA media not found ({previews} and {a.crops}): the MEVA collection is hidden, "
+              "your own videos are searched as usual", flush=True)
+    s = Searcher(Bundle(a.bundle), a.crops, alerts=store, vlm_path="" if a.no_vlm else a.vlm)
     lock = threading.RLock()
     print("loading models ...", flush=True)
     s.embed("warm up")
@@ -345,7 +370,7 @@ def main(argv=None) -> int:
             if os.path.exists(job.path):
                 os.remove(job.path)                 # the store keeps its own copy of the video
 
-    app = create_app(s, store, run, os.path.join(a.bundle, "previews"), a.static, load_phrasings(a.phrasings), lock)
+    app = create_app(s, store, run, previews, a.static, load_phrasings(a.phrasings), lock, meva=meva)
     import uvicorn
     shown = "127.0.0.1" if a.host == "0.0.0.0" else a.host     # what to open in the browser
     print(f"open http://{shown}:{a.port}", flush=True)

@@ -8,7 +8,7 @@ import pytest
 from sfs.alerts.detect import VideoInfo
 from sfs.demo.search import Bundle, Searcher
 from sfs.web.clipmap import ClipMap, clip_means
-from sfs.web.server import create_app
+from sfs.web.server import build_parser, create_app, meva_media_present
 from tests.test_demo import DIM, F, T, FakeVLM, _unit, alert_store, bundle, sources  # noqa: F401 (fixtures)
 
 
@@ -39,6 +39,9 @@ def client(sources, bundle, alert_store, tmp_path):
     app = create_app(s, st, fake_ingest, os.path.join(bundle, "previews"), str(static), phr)
     c = TestClient(app)
     c.calls, c.store, c.app = calls, st, app
+    # the same searcher and store with the MEVA collection hidden (spec-submission §1.5)
+    c.without_meva = lambda: TestClient(create_app(s, st, fake_ingest, os.path.join(bundle, "previews"), str(static),
+                                                   phr, meva=False))
     return c
 
 
@@ -116,3 +119,43 @@ def test_clip_map_is_a_stable_pca_of_clip_means():
     assert np.allclose(m1.meva, m2.meva)
     assert np.allclose(m1.project(emb, starts), m1.meva)          # a MEVA clip projects onto its own point
     assert np.allclose(np.linalg.norm(clip_means(emb, starts), axis=1), 1)
+
+
+def test_without_meva_media_only_alerts_are_searched_with_the_same_scores(client):
+    """spec-submission §1.5: hiding MEVA changes what is offered, not one alert score."""
+    q = {"query": "a person opening a car door", "collection": "alerts", "level": "standard", "top": 50}
+    full = client.post("/api/search", json=q).json()
+    bare = client.without_meva()
+    alone = bare.post("/api/search", json=q).json()
+    assert [x["id"] for x in alone["results"]] == [x["id"] for x in full["results"]] and len(alone["results"]) == 3
+    assert [x["scores"] for x in alone["results"]] == [x["scores"] for x in full["results"]]      # bit-identical
+    assert [x["band"] for x in alone["results"]] == [x["band"] for x in full["results"]]
+
+    st = bare.get("/api/status").json()
+    assert st["collections"] == ["alerts"] and st["meva_clips"] == 0 and st["alerts"] == 3
+    assert client.get("/api/status").json()["collections"] == ["meva", "alerts", "both"]
+    for collection in ("meva", "both"):
+        r = bare.post("/api/search", json=q | {"collection": collection})
+        assert r.status_code == 409 and "not installed" in r.json()["detail"]
+    assert bare.get("/api/clips/104").status_code == 404 and bare.get("/api/clips/104/frame/0.jpg").status_code == 404
+    m = bare.get("/api/map").json()
+    assert m["meva"] == {"ids": [], "points": [], "labels": []} and len(m["alerts"]["points"]) == 3
+    alert_id = alone["results"][0]["id"]
+    assert bare.get(f"/api/clips/{alert_id}").json()["source"] == "alert"
+
+
+def test_meva_media_need_both_previews_and_crops(tmp_path):
+    previews, crops = tmp_path / "previews", tmp_path / "crops"
+    assert not meva_media_present(str(previews), str(crops))
+    previews.mkdir()
+    assert not meva_media_present(str(previews), str(crops))
+    crops.mkdir()
+    assert meva_media_present(str(previews), str(crops))
+
+
+def test_server_paths_are_options_with_the_laptop_defaults():
+    a = build_parser().parse_args([])
+    assert (a.bundle, a.previews, a.crops, a.vlm) == ("data/demo/A", None, "data/crops_v2",
+                                                      "data/models/Qwen3-VL-2B-Instruct")
+    b = build_parser().parse_args(["--vlm", "m/vlm", "--previews", "x/previews", "--bundle", "m/index"])
+    assert (b.vlm, b.previews, b.bundle) == ("m/vlm", "x/previews", "m/index")
