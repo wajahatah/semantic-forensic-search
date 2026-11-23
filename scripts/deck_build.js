@@ -1,93 +1,17 @@
 // Builds the 10-minute presentation, report/Ahmed_Wajahat_DLPresentation.pptx (12 slides + speaker notes),
-// from report/numbers.json and report/figures/ (docs/planning/spec-report.md §7).
+// from report/numbers.json and report/figures/ (docs/planning/spec-report.md §7). Theme, layouts and helpers:
+// scripts/deck_common.js (shared with the 6-slide deck, scripts/deck6_build.js).
 //
 //   NODE_PATH=report/build/node_modules node scripts/deck_build.js
 //
 "use strict";
-const fs = require("fs");
 const path = require("path");
-const ROOT = path.resolve(__dirname, "..");
-const NM = path.join(ROOT, "report", "build", "node_modules");
-const pptxgen = require(require.resolve("pptxgenjs", { paths: [path.join(ROOT, "report", "build")] }));
-const SKILL = process.env.PPTX_SKILL_DIR;                     // folder holding scripts/apply_theme.js
-const N = JSON.parse(fs.readFileSync(path.join(ROOT, "report", "numbers.json"), "utf8"));
-const FIG = (n) => path.join(ROOT, "report", "figures", n);
+const { ROOT, N, H, num, createDeck } = require("./deck_common");
+const { D, f, f2, base, lora, cas, g1, g0, bsd, pa, sg } = num;
 const OUT = path.join(ROOT, "report", "Ahmed_Wajahat_DLPresentation.pptx");
 
-// ---------------------------------------------------------------- numbers
-const f = (x, d = 3) => Number(x).toFixed(d);
-const f2 = (x) => f(x, 2);
-const base = (P, sys, q, m) => N.baseline[P].systems[sys][q][m];
-const lora = (run, q, m) => N.lora.runs[run][q][m];
-const cas = (blk, P, q, sys, m) => N.cascade[blk].summary[`${P}/${q}`][sys][m];
-const g1 = (key, cfg, P) => N.g1[key].configs[cfg][P].gain;
-const g0 = (key, m) => N.g0[key][m];
-const D = N.dataset;
-const bsd = (blk, key) => N.bootstrap[blk][key];
-const pa = (act, P) => N.lora.per_activity.find((r) => r.protocol === P && r.activity === act);
-const sg = (x) => (x >= 0 ? "+" : "") + f(x);
-
-// ---------------------------------------------------------------- theme (control-room look of the dashboard)
-const THEME = {
-  name: "SFS Control Room", headFontFace: "Calibri", bodyFontFace: "Calibri",
-  colors: { dk1: "E6EDF3", lt1: "0B0F14", dk2: "9AA7B5", lt2: "121821", accent1: "22D3EE", accent2: "F59E0B",
-            accent3: "34D399", accent4: "A78BFA", accent5: "F87171", accent6: "60A5FA", hlink: "22D3EE", folHlink: "A78BFA" },
-};
-const H = THEME.colors;
-const pres = new pptxgen();
-pres.layout = "LAYOUT_16x9";                                   // 10 x 5.625 in
-pres.theme = { headFontFace: THEME.headFontFace, bodyFontFace: THEME.bodyFontFace };
-pres.author = "Wajahat Ahmed";
-pres.title = "Cost-Bounded Natural-Language Forensic Search over Surveillance Video";
-const C = pres.SchemeColor;
-
-pres.defineSlideMaster({
-  title: "TITLE", background: { color: H.lt1 },
-  objects: [
-    { placeholder: { options: { name: "title", type: "title", x: 0.7, y: 1.35, w: 8.6, h: 1.5, fontSize: 32, bold: true, color: C.text1, align: "center", valign: "middle", margin: 0 }, text: "" } },
-    { placeholder: { options: { name: "body", type: "body", x: 1.0, y: 2.95, w: 8.0, h: 0.8, fontSize: 16, color: C.text2, align: "center", valign: "top", margin: 0 }, text: "" } },
-  ],
-});
-pres.defineSlideMaster({
-  title: "CONTENT", background: { color: H.lt1 },
-  objects: [
-    { placeholder: { options: { name: "title", type: "title", x: 0.5, y: 0.28, w: 9.0, h: 0.68, fontSize: 22, bold: true, color: C.text1, valign: "middle", margin: 0 }, text: "" } },
-    { text: { text: "Semantic Forensic Search · Wajahat Ahmed · CS-5138 Deep Learning", options: { x: 0.5, y: 5.22, w: 7, h: 0.28, fontSize: 9, color: C.text2, margin: 0 } } },
-  ],
-  slideNumber: { x: 9.0, y: 5.22, w: 0.5, h: 0.28, fontSize: 9, color: H.dk2, align: "right" },
-});
-
-// ---------------------------------------------------------------- helpers (positions in inches)
-let nObj = 0;
-const nm = (s) => `${s} ${++nObj}`;
-function card(slide, x, y, w, h, head, body, o = {}) {
-  slide.addShape(pres.ShapeType.roundRect, { x, y, w, h, fill: { color: C.background2 }, line: { color: "1F2A37", width: 0.75 }, rectRadius: 0.08, objectName: nm("card") });
-  slide.addText(head, { x: x + 0.18, y: y + 0.1, w: w - 0.36, h: 0.36, fontSize: o.headSize || 14, bold: true, color: o.headColor || C.accent1, margin: 0, isTextBox: true, valign: "middle", objectName: nm("card head") });
-  slide.addText(body, { x: x + 0.18, y: y + 0.5, w: w - 0.36, h: h - 0.6, fontSize: o.bodySize || 12.5, color: C.text1, margin: 0, isTextBox: true, valign: "top", paraSpaceAfter: 4, objectName: nm("card body") });
-}
-function stat(slide, x, y, w, big, label, o = {}) {
-  slide.addText(big, { x, y, w, h: o.bigH || 0.62, fontSize: o.bigSize || 30, bold: true, color: o.color || C.accent1, margin: 0, isTextBox: true, valign: "bottom", objectName: nm("stat") });
-  slide.addText(label, { x, y: y + (o.bigH || 0.62) + 0.04, w, h: o.labelH || 0.5, fontSize: 12, color: C.text2, margin: 0, isTextBox: true, valign: "top", objectName: nm("stat label") });
-}
-function pill(slide, x, y, w, text, color = C.accent1, o = {}) {
-  slide.addShape(pres.ShapeType.roundRect, { x, y, w, h: o.h || 0.4, fill: { color: C.background1 }, line: { color, width: 1 }, rectRadius: 0.2, objectName: nm("pill") });
-  slide.addText(text, { x, y, w, h: o.h || 0.4, fontSize: o.size || 12, bold: true, color, align: "center", valign: "middle", margin: 0, isTextBox: true, objectName: nm("pill text") });
-}
-const bullets = (items, size = 13) => items.map((t, i) => ({ text: t, options: { bullet: true, breakLine: i < items.length - 1, fontSize: size, color: H.dk1, paraSpaceAfter: 5 } }));
-const chartFrame = {
-  chartArea: { fill: { color: H.lt1 } }, plotArea: { fill: { color: H.lt2 } },
-  catAxisLabelColor: H.dk2, valAxisLabelColor: H.dk2, catAxisLabelFontSize: 10, valAxisLabelFontSize: 10,
-  catAxisLabelFontFace: "+mn-lt", valAxisLabelFontFace: "+mn-lt", dataLabelFontFace: "+mn-lt", legendFontFace: "+mn-lt", titleFontFace: "+mn-lt",
-  valGridLine: { color: "1F2A37", size: 0.5 }, catGridLine: { style: "none" }, catAxisLineColor: "1F2A37", valAxisLineColor: "1F2A37",
-  showTitle: true, titleColor: H.dk1, titleFontSize: 12, legendColor: H.dk1, legendFontSize: 10,
-};
-const pngSize = (b) => ({ w: b.readUInt32BE(16), h: b.readUInt32BE(20) });
-function img(slide, name, x, y, w, alt) {
-  const s = pngSize(fs.readFileSync(FIG(name)));
-  const h = w * s.h / s.w;
-  slide.addImage({ path: FIG(name), x, y, w, h, altText: alt, objectName: nm("image") });
-  return h;
-}
+const { pres, C, nm, card, stat, pill, bullets, chartFrame, img, write } =
+  createDeck("Cost-Bounded Natural-Language Forensic Search over Surveillance Video");
 
 // ================================================================ slides
 // 1 title
@@ -161,7 +85,7 @@ s.addChart(pres.ChartType.bar, [
 ], { x: 0.5, y: 1.08, w: 5.7, h: 3.95, barDir: "col", barGrouping: "clustered", barGapWidthPct: 60, chartColors: [H.dk2, H.accent1],
   showValue: true, dataLabelPosition: "outEnd", dataLabelColor: H.dk1, dataLabelFontSize: 10, dataLabelFormatCode: "0.000",
   valAxisMinVal: 0, valAxisMaxVal: 0.5, valAxisMajorUnit: 0.1, valAxisLabelFormatCode: "0.0", showLegend: true, legendPos: "b",
-  title: "Evaluation split, 0 VLM calls per query (macro over 22 activities)", ...chartFrame });
+  title: "Evaluation split, 0 VLM calls per query (macro over 22 activities)", ...chartFrame() });
 stat(s, 6.5, 1.1, 3.0, "+0.134", "Q1 mAP gain on A (95 % CI +0.085 to +0.194); every metric improves on both protocols", { bigSize: 28, bigH: 0.5, labelH: 0.7 });
 stat(s, 6.5, 2.45, 3.0, "≈ 80 %", "of the gain transfers to cameras never seen in training (protocol B)", { bigSize: 28, bigH: 0.5, labelH: 0.7, color: C.accent3 });
 stat(s, 6.5, 3.8, 3.0, `${f2(pa("person_talks_to_person", "A").ap_base)} → ${f2(pa("person_talks_to_person", "A").ap_lora)}`, "AP for \"person talks to person\" — from a 1.2 M-parameter adapter (1.25 % of the encoder), 1.5 h on a laptop GPU", { bigSize: 28, bigH: 0.5, labelH: 0.7 });
@@ -179,7 +103,7 @@ s.addChart(pres.ChartType.line, [
   { name: "LoRA → 2B on top k (no student)", labels, values: [cas("2b", "A", "q2", "lora", "s1"), ...["5", "10", "20"].map((k) => cas("2b", "A", "q2", `lora>instruct@${k}`, "s1"))] },
 ], { x: 0.5, y: 1.08, w: 5.9, h: 3.95, chartColors: [H.accent3, H.accent4, H.accent2, H.accent6], lineSize: 2, lineDataSymbol: "circle", lineDataSymbolSize: 7,
   valAxisMinVal: 0.35, valAxisMaxVal: 0.65, valAxisMajorUnit: 0.05, valAxisLabelFormatCode: "0.00", showLegend: true, legendPos: "b",
-  title: "Protocol A · forensic Success@1 against VLM calls per query", ...chartFrame });
+  title: "Protocol A · forensic Success@1 against VLM calls per query", ...chartFrame() });
 stat(s, 6.65, 1.08, 2.85, `${f2(cas("2b", "A", "q2", "lora", "s1"))} → ${f2(cas("2b", "A", "q2", "student", "s1"))}`, `forensic Success@1 at 0 VLM calls, LoRA → LoRA + student (A); B: ${f2(cas("2b", "B", "q2", "lora", "s1"))} → ${f2(cas("2b", "B", "q2", "student", "s1"))}`, { bigSize: 28, bigH: 0.5, labelH: 0.6 });
 stat(s, 6.65, 2.3, 2.85, sg(bsd("32b", "A: 32B@10 - student").diff), `more at 10 calls with the 32B (95 % CI ${sg(bsd("32b", "A: 32B@10 - student").ci95[0])} to ${sg(bsd("32b", "A: 32B@10 - student").ci95[1])}); 8B ${sg(bsd("8b", "A: 8B@10 - student").diff)}, 2B ≤ +0.03; nothing beyond 20`, { bigSize: 28, bigH: 0.5, labelH: 0.75, color: C.accent2 });
 stat(s, 6.65, 3.7, 2.85, f2(cas("2b", "A", "q2", "instruct-all", "s1")), `the 2B VLM on every candidate (~${Math.round(cas("2b", "A", "q2", "instruct-all", "cost"))} calls): below LoRA alone (${f2(cas("2b", "A", "q2", "lora", "s1"))})`, { bigSize: 28, bigH: 0.5, labelH: 0.6, color: C.accent5 });
@@ -264,11 +188,4 @@ s.addText("Thank you — questions", { x: 0.5, y: 4.82, w: 9.0, h: 0.3, fontSize
 s.addNotes("9:00–10:00. Scorecard against the proposal, then the one-line takeaway. Future work if asked: heading-aware motion features, a retention objective for text-side adaptation, a second seed, a prompt study for the VLM gate, labelled non-MEVA footage for calibrated confidence.");
 
 // ---------------------------------------------------------------- write + theme
-(async () => {
-  await pres.writeFile({ fileName: OUT });
-  if (SKILL) {
-    const { applyTheme } = require(path.join(SKILL, "scripts", "apply_theme.js"));
-    await applyTheme(OUT, THEME);
-  }
-  console.log("wrote", OUT, fs.statSync(OUT).size, "bytes");
-})().catch((e) => { console.error(e); process.exit(1); });
+write(OUT).catch((e) => { console.error(e); process.exit(1); });

@@ -1,0 +1,26 @@
+{
+ "query": "a person picking up an object",
+ "activity": "person_picks_up_object",
+ "instance_id": 9850,
+ "corpus": 3726,
+ "rule": "top-ranked clip at Standard whose label is the query's activity, >= 2 frames, a box in every frame",
+ "frames_in_clip": 2,
+ "frame0_frozen_first3": [
+  -0.004,
+  0.056,
+  -0.01
+ ],
+ "frame0_lora_first3": [
+  0.025,
+  0.024,
+  -0.038
+ ],
+ "score_frozen": 0.09855470061302185,
+ "score_lora": 0.14897753298282623,
+ "score_student": 4.781566143035889,
+ "rank_frozen": 286,
+ "rank_lora": 126,
+ "rank_standard": 1,
+ "positives_in_corpus": 355,
+ "frames_shown": 2
+}
