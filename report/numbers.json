@@ -2,8 +2,11 @@
  "sources": {
   "raw_dir": "docs/results/raw",
   "files": [
+   "01b_clip_val.json",
    "02_baseline.json",
    "02_baseline_queries.csv",
+   "02b_clip_eval.json",
+   "02b_clip_eval_queries.csv.gz",
    "03_lora_A-middle.json",
    "03_lora_A-middle_done.json",
    "03_lora_A-middle_queries.csv",
@@ -2870,7 +2873,7 @@
       "GTKD": 1.0,
       "KD": 1.0
      },
-     "seconds_per_query_whole_eval_corpus": 0.10106361363520563
+     "seconds_per_query_whole_eval_corpus": 0.3238883075748824
     },
     "B": {
      "selected": "B-GT",
@@ -2879,11 +2882,11 @@
       "GTKD": 1.0,
       "KD": 1.0
      },
-     "seconds_per_query_whole_eval_corpus": 0.10953291212420234
+     "seconds_per_query_whole_eval_corpus": 0.323483662122409
     }
    },
    "vlm_seconds_per_call": {
-    "instruct": 0.16772847500396892
+    "instruct": 0.13172822024989728
    },
    "h5_direction": {
     "A/instruct": {
@@ -15162,5 +15165,204 @@
    }
   },
   "all_pass": false
+ },
+ "clip": {
+  "val": {
+   "protocol": "Result 01: validation split, tight view, top-3 mean",
+   "prompt": "a surveillance camera photo of a {}",
+   "encoders": {
+    "siglip": {
+     "n_instances": 739,
+     "n_activities": 15,
+     "auc": 0.6627555413146784,
+     "p10": 0.12000000000000002,
+     "chance_p10": 0.06450157870996842,
+     "per_activity_auc": {
+      "hand_interacts_with_person": 0.2981715893108298,
+      "person_carries_heavy_object": 0.5131513997602426,
+      "person_closes_vehicle_door": 0.9263318112633181,
+      "person_enters_scene_through_structure": 0.8844127363864206,
+      "person_enters_vehicle": 0.9188267394270123,
+      "person_exits_scene_through_structure": 0.8262525139003903,
+      "person_opens_facility_door": 0.842016317016317,
+      "person_opens_vehicle_door": 0.9657534246575342,
+      "person_picks_up_object": 0.2526576379787389,
+      "person_puts_down_object": 0.33859475507174663,
+      "person_stands_up": 0.1846903096903097,
+      "person_talks_to_person": 0.6193478179293782,
+      "person_texts_on_phone": 0.41091794158553546,
+      "vehicle_turns_left": 0.9791381668946648,
+      "vehicle_turns_right": 0.9810699588477366
+     }
+    },
+    "siglip2": {
+     "n_instances": 739,
+     "n_activities": 15,
+     "auc": 0.6971635322453006,
+     "p10": 0.22000000000000006,
+     "chance_p10": 0.06450157870996842,
+     "per_activity_auc": {
+      "hand_interacts_with_person": 0.37331725939320876,
+      "person_carries_heavy_object": 0.4909738382342571,
+      "person_closes_vehicle_door": 0.9610350076103501,
+      "person_enters_scene_through_structure": 0.8078292321713374,
+      "person_enters_vehicle": 0.9963619827194179,
+      "person_exits_scene_through_structure": 0.7756343901573406,
+      "person_opens_facility_door": 0.9223193473193473,
+      "person_opens_vehicle_door": 0.9622526636225266,
+      "person_picks_up_object": 0.46221057230231544,
+      "person_puts_down_object": 0.47544120072571333,
+      "person_stands_up": 0.1274975024975025,
+      "person_talks_to_person": 0.6786746219370333,
+      "person_texts_on_phone": 0.47058414464534076,
+      "vehicle_turns_left": 0.9769151846785226,
+      "vehicle_turns_right": 0.9764060356652949
+     }
+    },
+    "clip": {
+     "n_instances": 739,
+     "n_activities": 15,
+     "auc": 0.726306259274182,
+     "p10": 0.20666666666666667,
+     "chance_p10": 0.06450157870996842,
+     "per_activity_auc": {
+      "hand_interacts_with_person": 0.32122764717701424,
+      "person_carries_heavy_object": 0.478227910584585,
+      "person_closes_vehicle_door": 0.9660578386605784,
+      "person_enters_scene_through_structure": 0.733495670995671,
+      "person_enters_vehicle": 0.9549795361527967,
+      "person_exits_scene_through_structure": 0.7755308766118538,
+      "person_opens_facility_door": 0.9006993006993007,
+      "person_opens_vehicle_door": 0.9634703196347032,
+      "person_picks_up_object": 0.45251201397990387,
+      "person_puts_down_object": 0.4755401616361537,
+      "person_stands_up": 0.6253746253746254,
+      "person_talks_to_person": 0.74100341476228,
+      "person_texts_on_phone": 0.5603616133518776,
+      "vehicle_turns_left": 0.9668262653898769,
+      "vehicle_turns_right": 0.9792866941015089
+     }
+    }
+   }
+  },
+  "eval": {
+   "protocol": "Result 02: eval split, tight view, top-3 mean, 66 frozen phrasings",
+   "protocols": {
+    "A": {
+     "corpus": 3726,
+     "systems": {
+      "siglip2-tight": {
+       "q1": {
+        "ap": 0.1786,
+        "p10": 0.2591,
+        "rprec": 0.1992,
+        "r1": 0.0042,
+        "r5": 0.0165,
+        "r10": 0.0309,
+        "rr": 0.4815,
+        "s1": 0.3333,
+        "s5": 0.6818,
+        "s10": 0.7727
+       },
+       "q2": {
+        "ap": 0.3517,
+        "p10": 0.1809,
+        "rprec": 0.2507,
+        "r1": 0.1013,
+        "r5": 0.3596,
+        "r10": 0.5105,
+        "rr": 0.4465,
+        "s1": 0.2731,
+        "s5": 0.6549,
+        "s10": 0.8195
+       }
+      },
+      "clip-tight": {
+       "q1": {
+        "ap": 0.142,
+        "p10": 0.1894,
+        "rprec": 0.1447,
+        "r1": 0.0039,
+        "r5": 0.0118,
+        "r10": 0.0192,
+        "rr": 0.4098,
+        "s1": 0.2879,
+        "s5": 0.5303,
+        "s10": 0.7121
+       },
+       "q2": {
+        "ap": 0.3167,
+        "p10": 0.1557,
+        "rprec": 0.23,
+        "r1": 0.0942,
+        "r5": 0.3075,
+        "r10": 0.4347,
+        "rr": 0.3905,
+        "s1": 0.237,
+        "s5": 0.5581,
+        "s10": 0.7116
+       }
+      }
+     }
+    },
+    "B": {
+     "corpus": 3938,
+     "systems": {
+      "siglip2-tight": {
+       "q1": {
+        "ap": 0.1736,
+        "p10": 0.2742,
+        "rprec": 0.191,
+        "r1": 0.004,
+        "r5": 0.0167,
+        "r10": 0.0325,
+        "rr": 0.459,
+        "s1": 0.2879,
+        "s5": 0.6364,
+        "s10": 0.803
+       },
+       "q2": {
+        "ap": 0.345,
+        "p10": 0.1903,
+        "rprec": 0.2502,
+        "r1": 0.0993,
+        "r5": 0.3741,
+        "r10": 0.4962,
+        "rr": 0.4599,
+        "s1": 0.2747,
+        "s5": 0.7033,
+        "s10": 0.8489
+       }
+      },
+      "clip-tight": {
+       "q1": {
+        "ap": 0.1384,
+        "p10": 0.1924,
+        "rprec": 0.1433,
+        "r1": 0.0039,
+        "r5": 0.0154,
+        "r10": 0.023,
+        "rr": 0.4283,
+        "s1": 0.2879,
+        "s5": 0.6364,
+        "s10": 0.7424
+       },
+       "q2": {
+        "ap": 0.313,
+        "p10": 0.1658,
+        "rprec": 0.2212,
+        "r1": 0.0963,
+        "r5": 0.3135,
+        "r10": 0.4611,
+        "rr": 0.4093,
+        "s1": 0.2614,
+        "s5": 0.5844,
+        "s10": 0.7539
+       }
+      }
+     }
+    }
+   }
+  }
  }
 }

@@ -54,6 +54,9 @@ def test_cascade_cells_match_results_04_and_05(n):
     assert r3(n["students"]["A"]["val_map"]["KD"]) == 0.424
     assert r3(n["cascade"]["2b"]["vlm_seconds_per_call"]["instruct"]) == 0.168
     assert r3(n["cascade"]["32b"]["vlm_seconds_per_call"]["instruct"]) == 1.742
+    # the 8B block must carry the 8B's own time per call (equal to its G0 measurement), not the 2B's 0.168 s
+    assert n["cascade"]["8b"]["vlm_seconds_per_call"]["instruct"] == n["g0"]["qwen3vl_8b_fp8"]["seconds_per_pair_uncached"]
+    assert r3(n["cascade"]["8b"]["vlm_seconds_per_call"]["instruct"]) == 0.132
     bs = n["bootstrap"]["32b"]["A: 32B@10 - student"]
     assert bs["diff"] == 0.065 and bs["ci95"] == [0.04, 0.095]
     assert n["bootstrap"]["8b"]["A: 8B@10 - student"]["diff"] == 0.058
@@ -74,3 +77,18 @@ def test_gates_e8_and_drift_match_results_04_to_06(n):
     assert not v["adopt"] and r3(v["mean_diff"]["A-middle"]) == -0.019 and r3(v["mean_diff"]["B-uniform"]) == 0.047
     assert not n["drift"]["all_pass"] and r3(n["drift"]["results"]["A0"]["sentences"]["rho"]) == 0.813
     assert n["drift"]["revision"].startswith("75de2d55")
+
+
+def test_clip_comparison_matches_results_01_and_02_addenda(n):
+    v = n["clip"]["val"]["encoders"]
+    assert r3(v["siglip"]["auc"]) == 0.663 and r3(v["siglip2"]["auc"]) == 0.697 and r3(v["clip"]["auc"]) == 0.726
+    assert r3(v["siglip2"]["p10"]) == 0.220 and r3(v["clip"]["p10"]) == 0.207
+    assert v["clip"]["n_instances"] == 739 and v["clip"]["n_activities"] == 15
+    assert r3(v["clip"]["per_activity_auc"]["person_stands_up"]) == 0.625
+    e = n["clip"]["eval"]["protocols"]
+    assert e["A"]["corpus"] == 3726 and e["B"]["corpus"] == 3938
+    assert r3(e["A"]["systems"]["clip-tight"]["q1"]["ap"]) == 0.142 and r3(e["B"]["systems"]["clip-tight"]["q1"]["ap"]) == 0.138
+    assert r3(e["A"]["systems"]["clip-tight"]["q2"]["s1"]) == 0.237 and r3(e["B"]["systems"]["clip-tight"]["q2"]["s1"]) == 0.261
+    # the SigLIP 2 rows of the CLIP run are the frozen baseline of Result 02
+    for p in ("A", "B"):
+        assert e[p]["systems"]["siglip2-tight"]["q1"]["ap"] == n["baseline"][p]["systems"]["siglip2-tight"]["q1"]["ap"]

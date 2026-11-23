@@ -62,6 +62,23 @@ def dataset_counts(manifest: str = MANIFEST) -> dict | None:
     return out
 
 
+def clip_numbers(raw: str = RAW) -> dict:
+    """Zero-shot encoder comparison (D-067): validation AUC / P@10 per encoder (Result 01 protocol) and the eval
+    Q1 / Q2 macro metrics of CLIP and frozen SigLIP 2 per protocol (Result 02 protocol)."""
+    v = _load(raw, "01b_clip_val.json")
+    e = _load(raw, "02b_clip_eval.json")
+    out = {"val": {"protocol": v["protocol"], "prompt": v["prompt"], "encoders": {}},
+           "eval": {"protocol": e["protocol"], "protocols": {}}}
+    for enc, r in v["encoders"].items():
+        out["val"]["encoders"][enc] = {k: r[k] for k in ("n_instances", "n_activities", "auc", "p10", "chance_p10")}
+        out["val"]["encoders"][enc]["per_activity_auc"] = {a: x["auc"] for a, x in r["per_activity"].items()}
+    for p, blk in e["protocols"].items():
+        out["eval"]["protocols"][p] = {"corpus": blk["corpus_instances"],
+                                       "systems": {s: {"q1": x["q1"]["macro"], "q2": x["q2"]["macro"]}
+                                                   for s, x in blk["systems"].items()}}
+    return out
+
+
 def collect(raw: str = RAW, manifest: str = MANIFEST) -> dict:
     b = _load(raw, "02_baseline.json")
     sel = _load(raw, "03_lora_selection.json")
@@ -88,7 +105,8 @@ def collect(raw: str = RAW, manifest: str = MANIFEST) -> dict:
         n["lora"]["runs"][run]["training"] = {k: done.get(k) for k in ("best_epoch", "epochs_run", "best_val_map", "frozen_val_map") if k in done}
 
     # ---- Result 04 + 05: cascade summaries (every system x budget), students, latency, H5
-    for key, name in (("2b", "04_cascade.json"), ("8b", "05_8b_cascade.json"), ("32b", "05_32b_cascade.json"),
+    # 8B: the re-run with its own G0 file (D-048); 05_8b_cascade.json carries the 2B's time per call (summary identical)
+    for key, name in (("2b", "04_cascade.json"), ("8b", "05_8b_cascade_g0fix.json"), ("32b", "05_32b_cascade.json"),
                       ("q1all", "05_q1all.json"), ("turns", "05_turns.json")):
         d = _load(raw, name)
         n.setdefault("cascade", {})[key] = {"summary": d["summary"], "students": d["students"],
@@ -126,6 +144,9 @@ def collect(raw: str = RAW, manifest: str = MANIFEST) -> dict:
     n["e8"] = {k: e8[k] for k in ("seeds", "runs", "diffs", "verdict")}
     dr = _load(raw, "06_text_drift.json")
     n["drift"] = {k: dr[k] for k in ("rule", "n_sentences", "n_phrasings", "revision", "results", "all_pass")}
+
+    # ---- Results 01/02 addenda (D-067): zero-shot CLIP ViT-B/16 next to SigLIP / SigLIP 2
+    n["clip"] = clip_numbers(raw)
 
     n["sources"] = {"raw_dir": raw, "files": sorted(os.listdir(raw))}
     return n
