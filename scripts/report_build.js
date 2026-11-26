@@ -16,7 +16,7 @@ const {
 
 const N = JSON.parse(fs.readFileSync(path.join(ROOT, "report", "numbers.json"), "utf8"));
 const FIG = (name) => path.join(ROOT, "report", "figures", name);
-const OUT = process.env.REPORT_OUT || path.join(ROOT, "report", "Ahmed_Wajahat_DLReport.docx");   // REPORT_OUT: build elsewhere (e.g. while the file is open in Word)
+const OUT = process.env.REPORT_OUT || path.join(ROOT, "report", "Ahmed_Wajahat_DLReport_2026-11-07.docx");   // superseded by scripts/report_template_build.js (D-080), kept for the record   // REPORT_OUT: build elsewhere (e.g. while the file is open in Word)
 
 // ------------------------------------------------------------------ numbers
 const f = (x, d = 3) => Number(x).toFixed(d);
