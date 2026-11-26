@@ -914,6 +914,82 @@ hash on the server matches the frozen one (`62e1703a…`). Raw: `docs/results/ra
   media). The laptop dashboard now starts in the without-MEVA mode (D-077). Full suite after the deletion: 227
   passed, 4 deselected.
 
+## D-079 — 2026-11-24 — Report redrafted in the professor's template; hand-in folder per the four items
+
+- **Basis:** the professor's template (`report/project_template.pdf`, LaTeX: title page, abstract, contents, lists of
+  figures and tables, sections 1 Introduction … 7 Conclusion, appendices A code / link and B additional results) and
+  the hand-in list (report in the template, presentation PDF, intro video MP4 or link, code + model by link).
+- **Built:** `report/latex/main.tex`, compiled with Tectonic (conda-forge, own env `tex`; `dlproj` untouched) →
+  `report/Ahmed_Wajahat_DLReport.pdf`, 18 pages (4 front matter). Content from the 2026-11-07 report and
+  `report/numbers.json`, re-cut to the template: problem statement, objectives, scope; dataset table per protocol;
+  preprocessing; architecture as a TikZ diagram; the two losses as equations (label-aware sigmoid loss; BCE on
+  α·label + (1−α)·σ(teacher margin)); optimiser and hyperparameter table from the code defaults (LoRA AdamW 1e-4,
+  batch 64, warm-up 2, ×0.5 after 2 epochs without gain, stop after 5; student AdamW 3e-4, batch 256, ≤ 50 epochs,
+  stop after 5; weight decay 0.01; dropout 0.1); training algorithm; metrics with formulas; one comparison table
+  (CLIP, frozen, LoRA, + student, + 8B / 32B on top 10, 2B on all, both protocols); worked example (clip 9850);
+  ablation table; discussion; code listings (`TemporalReranker`, the LoRA loss); VLM gate and hypotheses tables.
+  Placeholders left for the owner: department, supervisor, submission date, Drive link.
+- **Presentation PDF:** `report/Ahmed_Wajahat_DLPresentation.pdf`, exported by PowerPoint from the presented deck
+  (`report/DLPresentation.pptx`, 8 slides).
+- **Hand-in folder:** `submission/report` (new PDF), `submission/presentation` (PDF), `submission/intro_video`
+  (empty, the owner's recording), code + models + guide for the Drive link (5.8 GB).
+
+## D-080 — 2026-11-24 — Report in Word (template structure), how-to-run appendix, department and supervisor
+
+- **Basis:** owner: "rewrite in word format; in the report add how to run the system properly at the appropriate
+  location and dataset link also"; Department: CIS; Supervisor: Dr Sharaf Hussain; the owner fills in the Drive link.
+- **Built:** `scripts/report_template_build.js` (docx-js, same text as `report/latex/main.tex`) writes
+  `report/Ahmed_Wajahat_DLReport.docx`; `scripts/report_word_finish.ps1` (own hidden Word instance) inserts the
+  contents and the lists of figures and tables, updates every field and exports `report/Ahmed_Wajahat_DLReport.pdf`
+  (21 pages: 4 front matter + 17). Equations are native Word equations; captions use SEQ fields; the architecture
+  figure is the TikZ diagram cropped from the LaTeX PDF at 300 dpi (`report/figures/fig1_architecture.png`).
+- **Content added (Word and LaTeX):** title page with "Department of Computer and Information Systems Engineering
+  (CIS)" and Dr Sharaf Hussain; dataset links (mevadata.org, AWS Open Data) in 3.1; Appendix A rewritten as "Code,
+  Models and How to Run the System": A.1 shared folder (link placeholder, contents table), A.2 requirements, A.3
+  installation, A.4 running the dashboard, A.5 dataset and reproducing the experiments (module order), A.6 code
+  listings; pointers from 1.5 and 5.1. Qwen3-VL now cited in Stage 3.
+- **Placeholders (yellow in Word):** submission date (title page), Drive link (A.1).
+- **Superseded:** the 2026-11-07 builder `scripts/report_build.js` now writes `..._2026-11-07.docx`; the LaTeX
+  version stays as the source of the architecture figure and is kept in step by hand.
+
+## D-081 — 2026-11-24 — All three test videos in the hand-in alert store
+
+- **Basis:** owner: "I have tested three different videos on the system but in the my_alerts folder we only have
+  one video alerts, put all other two videos also"; the two clips were in the Docker `alerts` volume only.
+- **Done:** `docker cp` of `/alerts/media/2|3/video.mp4` → `submission/test_videos/people_demo_3.mp4` /
+  `people_demo_2.mp4` (sha256 identical to the container's records: `222cb0fd…`, `cdf86997…`); both ingested with the
+  hand-in code (`submission/code`, `python -m sfs.alerts.ingest --store ../my_alerts`, laptop GPU, 4 min) rather than
+  copying the container's store, so all alerts come from the same platform the hand-in runs on (D-065). Store before
+  the change saved in the scratchpad (`my_alerts_before_2026-11-24.tgz`).
+- **Result:** `my_alerts` = garage_cctv 22, people_demo_3 9, people_demo_2 92 alerts (123; 0.9 GB). The container had
+  9 and 89 for the two clips — the known Windows/Linux decoder difference (D-065). Checked through the hand-in server
+  (port 8010, `--no-vlm`, without MEVA media): all three videos listed as ready, each searchable on its own at Fast
+  and Standard; server stopped by PID.
+- **Docs:** guide (`packaging/submission/README.md`, copied to `submission/`) and the report builder (Table 5, A.4
+  Detect step; the owner's date and Drive link) updated. The owner's own edited `submission/report/*.docx` was not
+  overwritten; the two changed lines are given to the owner to edit in Word. `build_submission.py` still copies only
+  the garage clip (the other two have no source outside `submission/` and the Docker volume).
+
+## D-082 — 2026-11-25 — Final fixes to the owner's hand-edited report
+
+- **Basis:** owner edited the Word report (date 24/11/2026, Drive link, conda install, Table 5, Section 2 and 7
+  wording) and asked for the remaining review points to be fixed ("I closed Word, go ahead and fix them").
+- **Done** on the owner's saved file (backup of the 13:44 version in the scratchpad, `backup_report_2026-11-25/`),
+  by Word automation (own hidden instance), not by rebuilding, so every owner edit stays:
+  Drive link made a real hyperlink, shortened to the folder address without the `?usp=drive_link` suffix (same
+  folder) so it fits one line, sentence left-aligned; Table 5 "same clip" → "same clips"; A.3 full stop; A.4 step 3
+  names the three test clips; Section 2 last paragraph "Our work differs in four ways. First, … Second, … Third, …
+  Finally, …"; Section 7 restored to the template's "Conclusion and Future Work" with 7.1 / 7.2 and the five
+  future-work bullets copied from the 2026-11-24 build. Fields, contents and lists updated twice; PDF exported with
+  heading bookmarks.
+- **Checked:** 21 pages; 36 contents entries match their pages; no highlight, tracked change or placeholder left;
+  Drive link clickable in the PDF. Appendix A now starts mid-page 14 after the last two references (no page break
+  was ever set before it; forcing one would leave an almost empty page).
+- **Installed:** `submission/report/` and `report/` (`Ahmed_Wajahat_DLReport.docx|.pdf`).
+- **Note:** the Word file is now the source of truth; `scripts/report_template_build.js` no longer reproduces it
+  (owner's hand edits). During the work three hidden Word instances were stopped by PID after a script error;
+  Word then flagged the scratchpad copy ("caused a serious error"); answered No; reruns used fresh file names.
+
 ## Open decisions
 
 | ID | Question | Status |
