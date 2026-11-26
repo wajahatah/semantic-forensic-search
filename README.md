@@ -5,6 +5,34 @@ vision-language re-ranker.
 
 Deep Learning graduate project — NED University.
 
+## Weights and ready-to-run package (Google Drive)
+
+Model weights are not in this repository. They are on Google Drive, together with a ready-to-run copy
+of the dashboard:
+
+**https://drive.google.com/drive/folders/1tCvC671fWx6psa6T1RzxxCK8stBeic8U?usp=sharing**
+
+The folder is shared from `wajahat.ahmedhashmi@gmail.com`; ask that account for access if the link
+does not open.
+
+| Folder | Contents |
+|---|---|
+| `models/siglip2/` | SigLIP 2 base encoder (Hugging Face cache, 1.5 GB) |
+| `models/lora_adapter/` | trained LoRA adapter, Protocol A (`adapter.pt`, 4.6 MB) |
+| `models/index/` | MEVA search index: vectors, metadata, student re-ranker (`student.pt`), 262 MB |
+| `models/yolo/` | `yolov8m.pt` for the Detect tab, 50 MB |
+| `models/qwen3-vl-2b/` | Qwen3-VL-2B-Instruct for the Verified search level, 4.0 GB |
+| `code/` | the `sfs` package, built front end and `run.bat` / `run.sh`, as in this repository |
+| `test_videos/`, `my_alerts/` | three CCTV test clips and their processed alerts (123) |
+| `report/`, `presentation/` | the submitted report (Word and PDF) and presentation (PDF) |
+
+`README.md` in that folder (the same text as `packaging/submission/README.md`) explains how to install
+and run it. The MEVA videos are not in the folder; get them from https://mevadata.org (see
+"Getting the data" below).
+
+To use the weights with this repository instead, put them where the commands below expect them, or pass
+the server options `--bundle`, `--weights`, `--adapter` and `--vlm` (see "Search dashboard").
+
 ---
 
 ## Problem
@@ -365,8 +393,10 @@ Bigger VLMs on the office server: 8B and 32B as a short-list stage (`docs/result
 LoRA helps on unseen cameras (+0.047 val mAP over two seeds) but loses on seen ones. It was not
 adopted, and the text-drift check failed (`docs/results/06`). Search dashboard (your videos + MEVA): `docs/demo.md`.
 Docker image built and checked 2026-11-08 (`docs/docker.md`): same rankings as the conda run on every query; Standard scores and borderline vehicle alerts differ slightly between the Windows and Linux library builds (measured, owner's call).
-Final report drafted (`report/Ahmed_Wajahat_DLReport.pdf`, built by `scripts/report_build.js` from
-`report/numbers.json` and `scripts/report_figures.py`; plan in `docs/planning/spec-report.md`); 12-slide deck
+**Submitted 2026-11-25.** Final report `report/Ahmed_Wajahat_DLReport.docx|.pdf` (21 pages, course template):
+first draft built by `scripts/report_template_build.js` + `scripts/report_word_finish.ps1` from `report/numbers.json`,
+then finished by hand in Word, so the Word file is the source of truth (the earlier 12-page draft builder
+`scripts/report_build.js` now writes a dated file; LaTeX draft in `report/latex/`); 12-slide deck
 `report/Ahmed_Wajahat_DLPresentation.pptx` built by `scripts/deck_build.js` from the same numbers; 6-slide deck
 `report/Ahmed_Wajahat_DLPresentation_6.pptx` (the professor's outline, about 7 minutes, with the zero-shot CLIP
 comparison) built by `scripts/deck6_build.js`. Both decks share `scripts/deck_common.js` (theme, layouts, helpers):
