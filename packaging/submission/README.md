@@ -17,8 +17,8 @@ The MEVA dataset used for training and evaluation is **not included**; it is pub
 |---|---|---|
 | `code/` | the Python package `sfs` (training, evaluation and the dashboard), the built web page, run scripts, Docker files | < 0.1 GB |
 | `models/` | everything the dashboard loads | 5.7 GB |
-| `test_videos/` | a short CCTV clip to try the upload with | < 0.1 GB |
-| `my_alerts/` | that clip already processed (22 alerts), so a search works straight away | 0.1 GB |
+| `test_videos/` | three CCTV clips to try the upload with: `garage_cctv.mp4` (2.5 min), `people_demo_2.mp4` (77 s) and `people_demo_3.mp4` (9 s) | < 0.1 GB |
+| `my_alerts/` | the three clips already processed (22 + 92 + 9 = 123 alerts), so a search works straight away | 0.9 GB |
 
 Inside `models/`:
 
@@ -80,11 +80,12 @@ in a browser. Stop it with Ctrl+C. Another port: `run.bat --port 8010`.
 
 ### Using the dashboard
 
-**Detect tab — your videos.** Upload a video (`test_videos/garage_cctv.mp4` or your own MP4/MOV/AVI/MKV/WebM).
+**Detect tab — your videos.** Upload a video (one of `test_videos/` or your own MP4/MOV/AVI/MKV/WebM).
 YOLO finds people, vehicles and backpacks; each object that stays for 0.5 s becomes an alert with a 5-second clip
 around it, and its crops are embedded with the same models the system was trained and evaluated with. Processing
 takes about 4× the video's length on a laptop GPU (the 2.5-minute test clip: 10 minutes); the page shows the
-progress. Alerts are kept in `my_alerts/` and survive a restart; the test clip is already there.
+progress. Alerts are kept in `my_alerts/` and survive a restart; the three test clips are already there (uploading one
+again is recognised and not processed twice).
 
 **Search tab.** Type what happened and choose a **level**:
 - **Fast** — the LoRA-tuned SigLIP 2: cosine similarity between the sentence and each frame, 0 VLM calls.
@@ -104,8 +105,8 @@ Example queries: "a person walking past a parked car", "a person getting into a 
 Install `requirements-cpu.txt` (§3) and run as in §4. The models run on the processor in full precision; search
 works and **the Verified level is greyed out**, because the VLM would take minutes per clip on a processor.
 Measured on the laptop with its GPU switched off: start about 1.5 minutes; a Standard search 2–6 s; **uploading a
-15-second clip took about 8 minutes** (YOLO on the processor), so try short clips, or search the test clip that
-is already processed.
+15-second clip took about 8 minutes** (YOLO on the processor), so try short clips, or search the three test clips that are
+already processed.
 
 ## 6. The MEVA dataset
 

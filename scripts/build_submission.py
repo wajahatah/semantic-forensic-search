@@ -42,7 +42,7 @@ MEVA_URL = "https://mevadata.org"
 INDEX_OLD, INDEX_NEW = "data/demo/A", "models/index"
 INDEX_FILES = ("bundle.json", "meta.sqlite", "student.pt", "vectors.npz")
 TEST_VIDEO = ("data/alerts/media/1/video.mp4", "test_videos/garage_cctv.mp4")
-EMPTY_DIRS = ("test_videos", "report", "presentation", "demo_video")
+EMPTY_DIRS = ("test_videos", "report", "presentation", "intro_video")
 CODE_COPIES = (                     # source in the repo -> path under submission/code
     ("src/sfs", "sfs"),
     ("web/dist", "web/dist"),
